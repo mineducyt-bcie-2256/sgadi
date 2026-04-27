@@ -458,10 +458,14 @@
                         <i class="fas fa-list"></i> Ver Registrados
                     </button>
                 </div>
-                <div class="form-row one">
+                <div class="form-row">
                     <div class="form-field">
                         <label>Fecha de Solicitud</label>
                         <input type="date" id="transFechaSol" disabled>
+                    </div>
+                    <div class="form-field">
+                        <label>Correlativo</label>
+                        <input type="text" id="transRef" disabled placeholder="GT_BCIE_AAAA_MM_NNN">
                     </div>
                 </div>
                 <div class="divider"></div>
@@ -995,6 +999,7 @@ function abrirSistema() {
     setVal('transSolicitante', usuarioActual.nombre);
 
     refrescarRef();
+    refrescarRefTrans();
     refrescarSelectsAcomp();
 
     // Activar primera sección visible
@@ -1071,13 +1076,23 @@ function alerta(msg, tipo) {
 // ===================================================
 // MEMORÁNDUMS
 // ===================================================
-var numInicioMem = 0; // offset del correlativo
+var numInicioMem = 338; // correlativo inicia en 339
 
 function refrescarRef() {
     var el = document.getElementById('memRef');
     if (!el) return;
     var n = String(contMem + 1 + numInicioMem).padStart(3, '0');
     el.value = 'UGP-BCIE-' + n + '/' + new Date().getFullYear();
+}
+
+function refrescarRefTrans() {
+    var el = document.getElementById('transRef');
+    if (!el) return;
+    var d   = new Date();
+    var anio = d.getFullYear();
+    var mes  = ('0' + (d.getMonth() + 1)).slice(-2);
+    var n    = String(contTrans + 1).padStart(3, '0');
+    el.value = 'GT_BCIE_' + anio + '_' + mes + '_' + n;
 }
 
 function aplicarNumInicio() {
@@ -1571,6 +1586,7 @@ function grabarTransporte() {
     document.querySelectorAll('.acomp-input').forEach(function(inp) { if (inp.value.trim()) acomps.push(inp.value.trim()); });
 
     var trans = {
+        correlativo:    document.getElementById('transRef').value,
         fechaSolicitud: document.getElementById('transFechaSol').value,
         fechaMision:    fechaMision,
         horaSalida:     document.getElementById('transHoraSal').value + ' ' + document.getElementById('transAMPMSal').value,
@@ -1593,7 +1609,10 @@ function grabarTransporte() {
         document.getElementById('transHoraSal').value     = '';
         document.getElementById('transHoraRet').value     = '';
         document.getElementById('transTipo').value        = '';
+        document.getElementById('transDestino') && (document.getElementById('transDestino').value = '');
         document.getElementById('transCamposDinamicos').innerHTML = '';
+        document.getElementById('filaDestino') && (document.getElementById('filaDestino').style.display = 'none');
+        refrescarRefTrans();
         irA('trans-consulta', null);
     }).catch(function(err) { alerta('Error: ' + err.message, 'error'); });
 }
@@ -1624,21 +1643,22 @@ function renderGMem() {
     if (!memorandums.length) { tb.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:#7f8c8d;">No hay memorándums</td></tr>'; return; }
     tb.innerHTML = memorandums.map(function(m, i) {
         var paraCompleto = (m.para || '') + (m.cargoDestino ? '<br><small style="color:#7f8c8d;">' + m.cargoDestino + '</small>' : '');
-        // Usuario: solo edita los suyos, sin columna de acciones extra
-        var puedeEditar = (rol !== 'usuario') || (m.usuario === usuarioActual.nombre);
-        var btnEditar   = puedeEditar
+        var puedeEditar  = (rol !== 'usuario') || (m.usuario === usuarioActual.nombre);
+        var btnEditar    = puedeEditar
             ? '<button class="btn btn-sm btn-secondary" onclick="abrirEditarMem(' + i + ')" style="margin-right:4px;"><i class="fas fa-edit"></i> Editar</button>'
             : '';
-        var accionesCol = rol === 'usuario'
-            ? '<td>' + btnEditar + '<button class="btn btn-sm" style="background:var(--primary);color:white;" onclick="imprimirMem(' + i + ')"><i class="fas fa-print"></i> Imprimir</button></td>'
-            : '<td style="white-space:nowrap;">' + btnEditar + '<button class="btn btn-sm" style="background:var(--primary);color:white;" onclick="imprimirMem(' + i + ')"><i class="fas fa-print"></i> Imprimir</button></td>';
+        var btnEliminar  = (rol === 'programador' || rol === 'administrador')
+            ? '<button class="btn btn-sm btn-danger" onclick="eliminarMemGestion(' + i + ')" style="margin-right:4px;"><i class="fas fa-trash"></i></button>'
+            : '';
         return '<tr>' +
             '<td>' + (m.referencia || '') + '</td>' +
             '<td>' + fmtFecha(m.fecha) + '</td>' +
             '<td>' + paraCompleto + '</td>' +
             '<td>' + (m.de || '') + '</td>' +
             '<td>' + (m.asunto || '').substring(0, 40) + '...</td>' +
-            accionesCol +
+            '<td style="white-space:nowrap;">' + btnEliminar + btnEditar +
+                '<button class="btn btn-sm" style="background:var(--primary);color:white;" onclick="imprimirMem(' + i + ')"><i class="fas fa-print"></i> Imprimir</button>' +
+            '</td>' +
         '</tr>';
     }).join('');
 }
@@ -1694,25 +1714,28 @@ function renderGTrans() {
     var tb  = document.getElementById('tbodyGTrans');
     var rol = usuarioActual ? usuarioActual.rol : '';
 
-    // Ajustar encabezado según rol
     var thead = document.getElementById('theadGTrans');
     if (thead) {
-        thead.innerHTML = rol === 'usuario'
-            ? '<tr><th>Fecha Sol.</th><th>Fecha Misión</th><th>Solicitante</th><th>Misión</th><th>Departamento</th><th>Distrito</th><th>Salida</th><th>Retorno</th><th>Estado</th></tr>'
-            : '<tr><th>Fecha Sol.</th><th>Fecha Misión</th><th>Solicitante</th><th>Misión</th><th>Departamento</th><th>Distrito</th><th>Salida</th><th>Retorno</th><th>Estado</th><th>Acciones</th></tr>';
+        var thAcc = rol !== 'usuario' ? '<th>Acciones</th>' : '';
+        thead.innerHTML = '<tr><th>Correlativo</th><th>Fecha Sol.</th><th>Fecha Misión</th><th>Solicitante</th><th>Misión</th><th>Departamento</th><th>Distrito</th><th>Salida</th><th>Retorno</th><th>Estado</th>' + thAcc + '</tr>';
     }
-    if (!transportes.length) { tb.innerHTML = '<tr><td colspan="' + (rol==='usuario'?'9':'10') + '" style="text-align:center;padding:30px;color:#7f8c8d;">No hay solicitudes</td></tr>'; return; }
+
+    var cols = rol !== 'usuario' ? '11' : '10';
+    if (!transportes.length) { tb.innerHTML = '<tr><td colspan="' + cols + '" style="text-align:center;padding:30px;color:#7f8c8d;">No hay solicitudes</td></tr>'; return; }
     tb.innerHTML = transportes.map(function(t, i) {
         var pc = primerCentro(t);
         var estadoClass = t.estado === 'Aprobado' ? 'badge-done' : 'badge-pending';
         var estadoBtn   = '<button class="badge ' + estadoClass + '" onclick="abrirFichaTransporte(' + i + ')" ' +
             'style="border:none;cursor:pointer;padding:5px 10px;font-size:12px;font-weight:600;border-radius:4px;">' +
             t.estado + '</button>';
-        // Columna acciones: solo para admin y programador
         var colAcciones = rol !== 'usuario'
-            ? '<td style="white-space:nowrap;"><button class="btn btn-sm btn-secondary" onclick="abrirTramitar(' + i + ')" title="Tramitar"><i class="fas fa-clipboard-list"></i> Tramitar</button></td>'
+            ? '<td style="white-space:nowrap;">' +
+                '<button class="btn btn-sm btn-secondary" onclick="abrirTramitar(' + i + ')" style="margin-right:4px;" title="Tramitar"><i class="fas fa-clipboard-list"></i> Tramitar</button>' +
+                '<button class="btn btn-sm btn-danger" onclick="eliminarTransporte(' + i + ')" title="Eliminar"><i class="fas fa-trash"></i></button>' +
+              '</td>'
             : '';
         return '<tr>' +
+            '<td><small style="color:#555;">' + (t.correlativo || '—') + '</small></td>' +
             '<td>' + fmtFecha(t.fechaSolicitud) + '</td>' +
             '<td>' + fmtFecha(t.fechaMision) + '</td>' +
             '<td>' + t.solicitante + '</td>' +
@@ -1994,6 +2017,28 @@ function eliminarReg(tipo, idx) {
         if (tipo === 'mem') { memorandums.splice(idx, 1); renderGMem(); renderMem(); }
         else                { transportes.splice(idx, 1); renderGTrans(); renderTrans(); }
         alerta('Registro eliminado', 'success');
+    }).catch(function(err) { alerta('Error: ' + err.message, 'error'); });
+}
+
+function eliminarTransporte(idx) {
+    if (!confirm('¿Seguro que deseas eliminar esta solicitud de transporte?')) return;
+    apiCall('deleteTransporte', { index: idx }).then(function(res) {
+        if (res && res.ok === false) throw new Error(res.error);
+        transportes.splice(idx, 1);
+        renderGTrans();
+        renderTrans();
+        alerta('Solicitud de transporte eliminada', 'success');
+    }).catch(function(err) { alerta('Error: ' + err.message, 'error'); });
+}
+
+function eliminarMemGestion(idx) {
+    if (!confirm('¿Seguro que deseas eliminar este memorándum?')) return;
+    apiCall('deleteMemorandum', { index: idx }).then(function(res) {
+        if (res && res.ok === false) throw new Error(res.error);
+        memorandums.splice(idx, 1);
+        renderGMem();
+        renderMem();
+        alerta('Memorándum eliminado', 'success');
     }).catch(function(err) { alerta('Error: ' + err.message, 'error'); });
 }
 
