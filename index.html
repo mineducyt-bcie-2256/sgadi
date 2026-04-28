@@ -397,6 +397,23 @@
                         <input type="text" id="memCargoDestino" placeholder="Cargo del destinatario">
                     </div>
                 </div>
+
+                <!-- SECCIÓN CC -->
+                <div style="margin-top:8px;margin-bottom:8px;">
+                    <button type="button" class="btn btn-secondary btn-sm" id="btnToggleCc" onclick="toggleCc()">
+                        <i class="fas fa-user-plus"></i> Agregar Con Copia (Cc)
+                    </button>
+                    <div id="seccionCc" style="display:none;margin-top:10px;padding:16px;background:#f0f4f8;border:1px solid var(--border);border-radius:8px;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                            <label style="font-weight:600;color:var(--primary);font-size:14px;margin:0;"><i class="fas fa-user-plus"></i> Con Copia (Cc)</label>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="agregarCc()" id="btnAgregarCc">
+                                <i class="fas fa-plus"></i> Agregar Cc
+                            </button>
+                        </div>
+                        <div id="ccContainer"></div>
+                    </div>
+                </div>
+
                 <div class="form-row">
                     <div class="form-field">
                         <label>De (Quién envía)</label>
@@ -419,6 +436,7 @@
                         <textarea id="memContenido" placeholder="Escribir el cuerpo del memorándum..." style="min-height:160px;"></textarea>
                     </div>
                 </div>
+
                 <button class="btn btn-primary btn-block" onclick="grabarMemo()">
                     <i class="fas fa-save"></i> Grabar Memorándum
                 </button>
@@ -532,6 +550,16 @@
                     </div>
                     <button class="btn-add" onclick="agregarAcomp()"><i class="fas fa-plus"></i> Añadir Acompañante</button>
                 </div>
+
+                <!-- Solicitar Motorista -->
+                <div style="margin-top:18px;padding:14px;background:#f0f4f8;border:2px solid var(--border);border-radius:8px;display:flex;align-items:center;gap:12px;">
+                    <input type="checkbox" id="transSolicitarMotorista" style="width:18px;height:18px;cursor:pointer;accent-color:var(--primary);">
+                    <label for="transSolicitarMotorista" style="cursor:pointer;font-weight:600;font-size:14px;margin:0;">
+                        <i class="fas fa-user-tie"></i> Solicitar Motorista
+                    </label>
+                    <span style="font-size:12px;color:#7f8c8d;">La administración será notificada de esta solicitud</span>
+                </div>
+
                 <button class="btn btn-primary btn-block" onclick="grabarTransporte()">
                     <i class="fas fa-save"></i> Grabar Solicitud de Transporte
                 </button>
@@ -650,6 +678,20 @@
             <textarea id="editMemContenido" style="width:100%;padding:10px 12px;border:2px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;resize:vertical;min-height:140px;"></textarea>
         </div>
 
+        <!-- CC EN EDICIÓN -->
+        <div style="margin-top:4px;margin-bottom:14px;">
+            <button type="button" class="btn btn-secondary btn-sm" id="btnToggleCcEdit" onclick="toggleCcEdit()" style="margin-bottom:10px;">
+                <i class="fas fa-user-plus"></i> Con Copia (Cc)
+            </button>
+            <div id="seccionCcEdit" style="display:none;padding:14px;background:#f0f4f8;border:1px solid var(--border);border-radius:8px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                    <label style="font-weight:600;color:var(--primary);font-size:14px;margin:0;"><i class="fas fa-user-plus"></i> Con Copia (Cc)</label>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="agregarCcEdit()" id="btnAgregarCcEdit"><i class="fas fa-plus"></i> Agregar Cc</button>
+                </div>
+                <div id="ccEditContainer"></div>
+            </div>
+        </div>
+
         <div class="modal-footer">
             <button class="btn btn-danger"    onclick="eliminarMem()"><i class="fas fa-trash"></i> Eliminar</button>
             <button class="btn btn-success"   onclick="guardarEditMem()"><i class="fas fa-save"></i> Guardar Cambios</button>
@@ -689,8 +731,15 @@
             </div>
         </div>
 
+        <!-- Observaciones (solo admin/programador) -->
+        <div class="form-group" style="margin-top:6px;padding:14px;background:#fff8e1;border:2px solid #f39c12;border-radius:8px;">
+            <label style="color:#856404;"><i class="fas fa-exclamation-circle"></i> Observaciones <small style="font-weight:normal;">(solo visible para administración)</small></label>
+            <textarea id="tramObservaciones" placeholder="Escribir observación para el solicitante..." style="width:100%;padding:10px 12px;border:1px solid #f39c12;border-radius:6px;font-size:14px;font-family:inherit;resize:vertical;min-height:70px;margin-top:6px;"></textarea>
+        </div>
+
         <div class="modal-footer">
             <button class="btn btn-danger"   onclick="eliminarDesdeModal()"><i class="fas fa-trash"></i> Eliminar</button>
+            <button class="btn" style="background:#f39c12;color:white;" onclick="enviarObservacion()"><i class="fas fa-comment-alt"></i> Enviar Observación</button>
             <button class="btn btn-success"  onclick="aprobarDesdeModal()"><i class="fas fa-check"></i> Aprobar</button>
             <button class="btn btn-secondary" onclick="document.getElementById('modalTramitar').classList.remove('active')">Cerrar</button>
         </div>
@@ -774,7 +823,7 @@
 // ===================================================
 // CONFIGURACIÓN
 // ===================================================
-const API_URL = 'https://script.google.com/macros/s/AKfycbxpIwyfzoFSxof6I1hdHZ_2FPLHEoXGg8vwvrqin8lF4XBxVNHuO3kn3UBg1RIrGfVw/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycby_OvFHo_ozKX9I3dHbn8H5KAgf5lyF2p9twj0aIMeQFjTQdE7SvmUVOAW2mYh6wmuj/exec';
 
 const PROGRAMADOR = {
     nombre: 'Martin Quintanilla',
@@ -1078,6 +1127,161 @@ function alerta(msg, tipo) {
 // ===================================================
 var numInicioMem = 338; // correlativo inicia en 339
 
+// ===== CC (CON COPIA) =====
+function agregarCc() {
+    var container = document.getElementById('ccContainer');
+    var items     = container.querySelectorAll('.cc-item');
+    if (items.length >= 3) {
+        alerta('Máximo 3 destinatarios en copia', 'error');
+        return;
+    }
+    var num = items.length + 1;
+    var div = document.createElement('div');
+    div.className = 'cc-item';
+    div.style.cssText = 'display:grid;grid-template-columns:1fr 1fr auto;gap:10px;margin-bottom:10px;align-items:center;';
+    div.innerHTML =
+        '<input type="text" class="cc-nombre" placeholder="Nombre Cc ' + num + '" ' +
+            'style="padding:9px 12px;border:2px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;">' +
+        '<input type="text" class="cc-cargo" placeholder="Cargo Cc ' + num + '" ' +
+            'style="padding:9px 12px;border:2px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;">' +
+        '<button type="button" class="btn-remove" onclick="this.parentElement.remove();actualizarBtnCc();">' +
+            '<i class="fas fa-trash"></i>' +
+        '</button>';
+    container.appendChild(div);
+    actualizarBtnCc();
+}
+
+function actualizarBtnCc() {
+    var items  = document.getElementById('ccContainer').querySelectorAll('.cc-item');
+    var btn    = document.getElementById('btnAgregarCc');
+    if (btn) btn.style.display = items.length >= 3 ? 'none' : 'inline-flex';
+}
+
+function obtenerCcs() {
+    var ccs = [];
+    document.querySelectorAll('#ccContainer .cc-item').forEach(function(item) {
+        var nombre = item.querySelector('.cc-nombre').value.trim();
+        var cargo  = item.querySelector('.cc-cargo').value.trim();
+        if (nombre) ccs.push({ nombre: nombre, cargo: cargo });
+    });
+    return ccs;
+}
+
+function agregarCcEdit() {
+    var container = document.getElementById('ccEditContainer');
+    var items     = container.querySelectorAll('.cc-edit-item');
+    if (items.length >= 3) { alerta('Máximo 3 destinatarios en copia', 'error'); return; }
+    var num = items.length + 1;
+    var div = document.createElement('div');
+    div.className = 'cc-edit-item';
+    div.style.cssText = 'display:grid;grid-template-columns:1fr 1fr auto;gap:10px;margin-bottom:10px;align-items:center;';
+    div.innerHTML =
+        '<input type="text" class="cc-edit-nombre" placeholder="Nombre Cc ' + num + '" ' +
+            'style="padding:9px 12px;border:2px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;">' +
+        '<input type="text" class="cc-edit-cargo" placeholder="Cargo Cc ' + num + '" ' +
+            'style="padding:9px 12px;border:2px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;">' +
+        '<button type="button" class="btn-remove" onclick="this.parentElement.remove();actualizarBtnCcEdit();"><i class="fas fa-trash"></i></button>';
+    container.appendChild(div);
+    actualizarBtnCcEdit();
+}
+
+function actualizarBtnCcEdit() {
+    var items = document.getElementById('ccEditContainer').querySelectorAll('.cc-edit-item');
+    var btn   = document.getElementById('btnAgregarCcEdit');
+    if (btn) btn.style.display = items.length >= 3 ? 'none' : 'inline-flex';
+}
+
+function obtenerCcsEdit() {
+    var ccs = [];
+    document.querySelectorAll('#ccEditContainer .cc-edit-item').forEach(function(item) {
+        var nombre = item.querySelector('.cc-edit-nombre').value.trim();
+        var cargo  = item.querySelector('.cc-edit-cargo').value.trim();
+        if (nombre) ccs.push({ nombre: nombre, cargo: cargo });
+    });
+    return ccs;
+}
+
+function toggleCcEdit() {
+    var sec = document.getElementById('seccionCcEdit');
+    var btn = document.getElementById('btnToggleCcEdit');
+    if (sec.style.display === 'none') {
+        sec.style.display = 'block';
+        btn.innerHTML = '<i class="fas fa-times"></i> Quitar Con Copia (Cc)';
+        btn.style.background = 'var(--secondary)';
+        btn.style.color = 'white';
+    } else {
+        sec.style.display = 'none';
+        btn.innerHTML = '<i class="fas fa-user-plus"></i> Con Copia (Cc)';
+        btn.style.background = '';
+        btn.style.color = '';
+        document.getElementById('ccEditContainer').innerHTML = '';
+    }
+}
+
+function cargarCcsEnEdicion(ccs) {
+    document.getElementById('ccEditContainer').innerHTML = '';
+    var sec = document.getElementById('seccionCcEdit');
+    var btn = document.getElementById('btnToggleCcEdit');
+    if (!ccs || !ccs.length) {
+        if (sec) sec.style.display = 'none';
+        if (btn) { btn.innerHTML = '<i class="fas fa-user-plus"></i> Con Copia (Cc)'; btn.style.background = ''; btn.style.color = ''; }
+        return;
+    }
+    // Si hay Cc, mostrar la sección automáticamente
+    if (sec) sec.style.display = 'block';
+    if (btn) { btn.innerHTML = '<i class="fas fa-times"></i> Quitar Con Copia (Cc)'; btn.style.background = 'var(--secondary)'; btn.style.color = 'white'; }
+    ccs.forEach(function(cc) {
+        agregarCcEdit();
+        var items  = document.querySelectorAll('#ccEditContainer .cc-edit-item');
+        var ultimo = items[items.length - 1];
+        ultimo.querySelector('.cc-edit-nombre').value = cc.nombre || '';
+        ultimo.querySelector('.cc-edit-cargo').value  = cc.cargo  || '';
+    });
+}
+
+function toggleCc() {
+    var sec = document.getElementById('seccionCc');
+    var btn = document.getElementById('btnToggleCc');
+    if (sec.style.display === 'none') {
+        sec.style.display = 'block';
+        btn.innerHTML = '<i class="fas fa-times"></i> Quitar Con Copia (Cc)';
+        btn.style.background = 'var(--secondary)';
+        btn.style.color = 'white';
+    } else {
+        sec.style.display = 'none';
+        btn.innerHTML = '<i class="fas fa-user-plus"></i> Agregar Con Copia (Cc)';
+        btn.style.background = '';
+        btn.style.color = '';
+        limpiarCcs();
+    }
+}
+
+function limpiarCcs() {
+    document.getElementById('ccContainer').innerHTML = '';
+    actualizarBtnCc();
+    // Resetear botón toggle
+    var sec = document.getElementById('seccionCc');
+    var btn = document.getElementById('btnToggleCc');
+    if (sec) sec.style.display = 'none';
+    if (btn) {
+        btn.innerHTML = '<i class="fas fa-user-plus"></i> Agregar Con Copia (Cc)';
+        btn.style.background = '';
+        btn.style.color = '';
+    }
+}
+
+function cargarCcsEnFormulario(ccs) {
+    limpiarCcs();
+    if (!ccs || !ccs.length) return;
+    ccs.forEach(function(cc) {
+        agregarCc();
+        var items = document.querySelectorAll('#ccContainer .cc-item');
+        var ultimo = items[items.length - 1];
+        ultimo.querySelector('.cc-nombre').value = cc.nombre || '';
+        ultimo.querySelector('.cc-cargo').value  = cc.cargo  || '';
+    });
+}
+
 function refrescarRef() {
     var el = document.getElementById('memRef');
     if (!el) return;
@@ -1148,7 +1352,7 @@ function imprimirMem(idx) {
             '.pie-pagina{position:fixed;bottom:1cm;left:2.5cm;right:2.5cm;text-align:center;font-size:9pt;border-top:1px solid #000;padding-top:5px;}' +
         '</style></head><body>' +
 
-        '<div class="pie-pagina">35 Avenida Norte # 7A, Reparto Santa Fe, distrito de San Salvador Centro, municipio de San Salvador</div>' +
+        '<div class="pie-pagina">Alameda Juan Pablo II y calle Guadalupe, edificios A1, San Salvador, El Salvador, Centro América, +(503)2592-2000, 2592-2122</div>' +
 
         '<div class="pagina">' +
         '<div class="encabezado">' +
@@ -1158,6 +1362,9 @@ function imprimirMem(idx) {
         '<div class="referencia">' + (m.referencia || '') + '</div>' +
         '<div class="campos">' +
             '<div class="campo-fila"><div class="campo-label">PARA:</div><div class="campo-valor">' + (m.para || '') + '<br>' + (m.cargoDestino || '') + '</div></div>' +
+            (m.cc1Nombre ? '<div class="campo-fila"><div class="campo-label">CC:</div><div class="campo-valor">' + m.cc1Nombre + (m.cc1Cargo ? '<br>' + m.cc1Cargo : '') + '</div></div>' : '') +
+            (m.cc2Nombre ? '<div class="campo-fila"><div class="campo-label"></div><div class="campo-valor">' + m.cc2Nombre + (m.cc2Cargo ? '<br>' + m.cc2Cargo : '') + '</div></div>' : '') +
+            (m.cc3Nombre ? '<div class="campo-fila"><div class="campo-label"></div><div class="campo-valor">' + m.cc3Nombre + (m.cc3Cargo ? '<br>' + m.cc3Cargo : '') + '</div></div>' : '') +
             '<div class="campo-fila"><div class="campo-label">DE:</div><div class="campo-valor">' + (m.de || '') + '<br>' + (m.cargoOrigen || '') + '</div></div>' +
             '<div class="campo-fila"><div class="campo-label">ASUNTO:</div><div class="campo-valor">' + (m.asunto || '') + '</div></div>' +
             '<div class="campo-fila"><div class="campo-label">FECHA:</div><div class="campo-valor">' + fmtFechaLarga(m.fecha) + '</div></div>' +
@@ -1177,6 +1384,7 @@ function grabarMemo() {
     var asunto = document.getElementById('memAsunto').value.trim();
     if (!para || !asunto) { alerta('Completa los campos obligatorios', 'error'); return; }
 
+    var ccs  = obtenerCcs();
     var memo = {
         referencia:   document.getElementById('memRef').value,
         fecha:        document.getElementById('memFecha').value,
@@ -1187,6 +1395,12 @@ function grabarMemo() {
         cargoOrigen:  document.getElementById('memCargoOrigen').value,
         asunto:       asunto,
         contenido:    document.getElementById('memContenido').value.trim(),
+        cc1Nombre:    ccs[0] ? ccs[0].nombre : '',
+        cc1Cargo:     ccs[0] ? ccs[0].cargo  : '',
+        cc2Nombre:    ccs[1] ? ccs[1].nombre : '',
+        cc2Cargo:     ccs[1] ? ccs[1].cargo  : '',
+        cc3Nombre:    ccs[2] ? ccs[2].nombre : '',
+        cc3Cargo:     ccs[2] ? ccs[2].cargo  : '',
         estado:       'Pendiente',
         usuario:      usuarioActual.nombre,
         fechaRegistro: new Date().toLocaleString()
@@ -1197,12 +1411,13 @@ function grabarMemo() {
         memorandums.push(memo);
         contMem++;
         alerta('Memorándum grabado exitosamente', 'success');
-        document.getElementById('memPara').value = '';
+        document.getElementById('memPara').value         = '';
         document.getElementById('memCargoDestino').value = '';
         document.getElementById('memCargoOrigen').value  = '';
         document.getElementById('memAsunto').value       = '';
         document.getElementById('memContenido').value    = '';
         document.getElementById('memDe').value           = usuarioActual.nombre;
+        limpiarCcs();
         refrescarRef();
         irA('mem-consulta', null);
     }).catch(function(err) { alerta('Error: ' + err.message, 'error'); });
@@ -1239,6 +1454,9 @@ function abrirEditarMem(idx) {
     if (rol === 'usuario' && m.usuario !== usuarioActual.nombre) {
         alerta('Solo puedes editar memorándums que tú has creado', 'error'); return;
     }
+    if (rol === 'usuario' && !puedeEditar('mem', idx, m.fechaRegistro)) {
+        alerta('El tiempo de edición (1 hora) ha expirado. Solicita habilitación al administrador.', 'error'); return;
+    }
     editMemIdx = idx;
     document.getElementById('editMemElabora').value      = m.quienElabora  || '';
     document.getElementById('editMemFecha').value        = fechaParaInput(m.fecha);
@@ -1249,6 +1467,13 @@ function abrirEditarMem(idx) {
     document.getElementById('editMemCargoOrigen').value  = m.cargoOrigen   || '';
     document.getElementById('editMemAsunto').value       = m.asunto        || '';
     document.getElementById('editMemContenido').value    = m.contenido     || '';
+
+    // Cargar Cc existentes
+    var ccsExistentes = [];
+    if (m.cc1Nombre) ccsExistentes.push({ nombre: m.cc1Nombre, cargo: m.cc1Cargo || '' });
+    if (m.cc2Nombre) ccsExistentes.push({ nombre: m.cc2Nombre, cargo: m.cc2Cargo || '' });
+    if (m.cc3Nombre) ccsExistentes.push({ nombre: m.cc3Nombre, cargo: m.cc3Cargo || '' });
+    cargarCcsEnEdicion(ccsExistentes);
     // Botón eliminar según rol
     var btnElim = document.querySelector('#modalEditarMem .btn-danger');
     if (btnElim) {
@@ -1277,6 +1502,15 @@ function guardarEditMem() {
     m.cargoOrigen  = document.getElementById('editMemCargoOrigen').value.trim();
     m.asunto       = document.getElementById('editMemAsunto').value.trim();
     m.contenido    = document.getElementById('editMemContenido').value.trim();
+
+    // Guardar Cc
+    var ccs = obtenerCcsEdit();
+    m.cc1Nombre = ccs[0] ? ccs[0].nombre : '';
+    m.cc1Cargo  = ccs[0] ? ccs[0].cargo  : '';
+    m.cc2Nombre = ccs[1] ? ccs[1].nombre : '';
+    m.cc2Cargo  = ccs[1] ? ccs[1].cargo  : '';
+    m.cc3Nombre = ccs[2] ? ccs[2].nombre : '';
+    m.cc3Cargo  = ccs[2] ? ccs[2].cargo  : '';
     renderMem(); renderGMem();
     alerta('Memorándum actualizado', 'success');
     document.getElementById('modalEditarMem').classList.remove('active');
@@ -1586,18 +1820,19 @@ function grabarTransporte() {
     document.querySelectorAll('.acomp-input').forEach(function(inp) { if (inp.value.trim()) acomps.push(inp.value.trim()); });
 
     var trans = {
-        correlativo:    document.getElementById('transRef').value,
-        fechaSolicitud: document.getElementById('transFechaSol').value,
-        fechaMision:    fechaMision,
-        horaSalida:     document.getElementById('transHoraSal').value + ' ' + document.getElementById('transAMPMSal').value,
-        horaRetorno:    document.getElementById('transHoraRet').value + ' ' + document.getElementById('transAMPMRet').value,
-        solicitante:    document.getElementById('transSolicitante').value,
-        tipoMision:     tipo,
-        detalles:       detalles,
-        acompanantes:   acomps,
-        estado:         'Pendiente',
-        usuario:        usuarioActual.nombre,
-        fechaRegistro:  new Date().toLocaleString()
+        correlativo:       document.getElementById('transRef').value,
+        fechaSolicitud:    document.getElementById('transFechaSol').value,
+        fechaMision:       fechaMision,
+        horaSalida:        document.getElementById('transHoraSal').value + ' ' + document.getElementById('transAMPMSal').value,
+        horaRetorno:       document.getElementById('transHoraRet').value + ' ' + document.getElementById('transAMPMRet').value,
+        solicitante:       document.getElementById('transSolicitante').value,
+        tipoMision:        tipo,
+        detalles:          detalles,
+        acompanantes:      acomps,
+        solicitarMotorista: document.getElementById('transSolicitarMotorista').checked ? 'Si' : 'No',
+        estado:            'Pendiente',
+        usuario:           usuarioActual.nombre,
+        fechaRegistro:     new Date().toLocaleString()
     };
 
     apiCall('saveTransporte', trans).then(function(res) {
@@ -1621,14 +1856,15 @@ function renderTrans() {
     var tb = document.getElementById('tbodyTrans');
     if (!transportes.length) { tb.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:#7f8c8d;">No hay solicitudes registradas</td></tr>'; return; }
     tb.innerHTML = transportes.map(function(t, i) {
+        var tn = normalizarTransporte(t);
         return '<tr>' +
-            '<td>' + fmtFecha(t.fechaSolicitud) + '</td>' +
-            '<td>' + fmtFecha(t.fechaMision)    + '</td>' +
-            '<td>' + t.solicitante + '</td>' +
-            '<td>' + t.tipoMision  + '</td>' +
-            '<td>' + t.horaSalida  + '</td>' +
-            '<td>' + t.horaRetorno + '</td>' +
-            '<td><span class="badge ' + (t.estado === 'Aprobado' ? 'badge-done' : 'badge-pending') + '">' + t.estado + '</span></td>' +
+            '<td>' + fmtFecha(tn.fechaSolicitud) + '</td>' +
+            '<td>' + fmtFecha(tn.fechaMision)    + '</td>' +
+            '<td>' + (tn.solicitante || '') + '</td>' +
+            '<td>' + (tn.tipoMision  || '') + '</td>' +
+            '<td>' + (tn.horaSalida  || '') + '</td>' +
+            '<td>' + (tn.horaRetorno || '') + '</td>' +
+            '<td><span class="badge ' + (tn.estado === 'Aprobado' ? 'badge-done' : 'badge-pending') + '">' + (tn.estado || '') + '</span></td>' +
             '<td>—</td>' +
         '</tr>';
     }).join('');
@@ -1640,16 +1876,36 @@ function renderTrans() {
 function renderGMem() {
     var tb  = document.getElementById('tbodyGMem');
     var rol = usuarioActual ? usuarioActual.rol : '';
-    if (!memorandums.length) { tb.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:#7f8c8d;">No hay memorándums</td></tr>'; return; }
-    tb.innerHTML = memorandums.map(function(m, i) {
+
+    var lista = (rol === 'usuario')
+        ? memorandums.map(function(m, i) { return { m: m, i: i }; }).filter(function(x) { return x.m.usuario === usuarioActual.nombre; })
+        : memorandums.map(function(m, i) { return { m: m, i: i }; });
+
+    if (!lista.length) { tb.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:#7f8c8d;">No hay memorándums registrados</td></tr>'; return; }
+    tb.innerHTML = lista.map(function(x) {
+        var m = x.m; var i = x.i;
         var paraCompleto = (m.para || '') + (m.cargoDestino ? '<br><small style="color:#7f8c8d;">' + m.cargoDestino + '</small>' : '');
-        var puedeEditar  = (rol !== 'usuario') || (m.usuario === usuarioActual.nombre);
-        var btnEditar    = puedeEditar
-            ? '<button class="btn btn-sm btn-secondary" onclick="abrirEditarMem(' + i + ')" style="margin-right:4px;"><i class="fas fa-edit"></i> Editar</button>'
-            : '';
         var btnEliminar  = (rol === 'programador' || rol === 'administrador')
             ? '<button class="btn btn-sm btn-danger" onclick="eliminarMemGestion(' + i + ')" style="margin-right:4px;"><i class="fas fa-trash"></i></button>'
             : '';
+
+        var btnEditar = '';
+        if (rol === 'programador' || rol === 'administrador') {
+            btnEditar = '<button class="btn btn-sm btn-secondary" onclick="abrirEditarMem(' + i + ')" style="margin-right:4px;"><i class="fas fa-edit"></i> Editar</button>';
+            // Botón habilitar edición para usuario
+            var keyM = 'mem_' + i;
+            if (!edicionHabilitada[keyM]) {
+                btnEditar += '<button class="btn btn-sm" style="background:#8e44ad;color:white;margin-right:4px;" onclick="habilitarEdicion(\'mem\',' + i + ')" title="Habilitar edición al usuario"><i class="fas fa-unlock"></i></button>';
+            }
+        } else {
+            // Usuario: verificar tiempo
+            if (puedeEditar('mem', i, m.fechaRegistro)) {
+                btnEditar = '<button class="btn btn-sm btn-secondary" onclick="abrirEditarMem(' + i + ')" style="margin-right:4px;"><i class="fas fa-edit"></i> Editar</button>';
+            } else {
+                btnEditar = '<span style="font-size:11px;color:#aaa;margin-right:6px;"><i class="fas fa-lock"></i> Bloqueado</span>';
+            }
+        }
+
         return '<tr>' +
             '<td>' + (m.referencia || '') + '</td>' +
             '<td>' + fmtFecha(m.fecha) + '</td>' +
@@ -1700,9 +1956,26 @@ function fmtFecha(f) {
     return f;
 }
 
+// ===================================================
+// NORMALIZAR TRANSPORTE - solo limpia tipos, no reordena
+// ===================================================
+function normalizarTransporte(t) {
+    // Parsear detalles y acompañantes si vienen como string
+    var tn = {};
+    for (var k in t) { tn[k] = t[k]; }
+    if (typeof tn.detalles === 'string') {
+        try { tn.detalles = JSON.parse(tn.detalles); } catch(e) { tn.detalles = {}; }
+    }
+    if (typeof tn.acompanantes === 'string') {
+        try { tn.acompanantes = JSON.parse(tn.acompanantes); } catch(e) { tn.acompanantes = []; }
+    }
+    return tn;
+}
+
 function primerCentro(t) {
+    var tn = normalizarTransporte(t);
     try {
-        var det = typeof t.detalles === 'string' ? JSON.parse(t.detalles) : t.detalles;
+        var det = typeof tn.detalles === 'string' ? JSON.parse(tn.detalles) : tn.detalles;
         if (det && det.centros && det.centros.length > 0) {
             return { depto: det.centros[0].departamento || '—', dist: det.centros[0].distrito || '—' };
         }
@@ -1721,29 +1994,48 @@ function renderGTrans() {
     }
 
     var cols = rol !== 'usuario' ? '11' : '10';
-    if (!transportes.length) { tb.innerHTML = '<tr><td colspan="' + cols + '" style="text-align:center;padding:30px;color:#7f8c8d;">No hay solicitudes</td></tr>'; return; }
-    tb.innerHTML = transportes.map(function(t, i) {
-        var pc = primerCentro(t);
-        var estadoClass = t.estado === 'Aprobado' ? 'badge-done' : 'badge-pending';
-        var estadoBtn   = '<button class="badge ' + estadoClass + '" onclick="abrirFichaTransporte(' + i + ')" ' +
-            'style="border:none;cursor:pointer;padding:5px 10px;font-size:12px;font-weight:600;border-radius:4px;">' +
-            t.estado + '</button>';
-        var colAcciones = rol !== 'usuario'
-            ? '<td style="white-space:nowrap;">' +
+
+    // Filtrar según rol
+    var lista = (rol === 'usuario')
+        ? transportes.map(function(t, i) { return { t: t, i: i }; }).filter(function(x) {
+            var tn = normalizarTransporte(x.t);
+            return tn.usuario === usuarioActual.nombre || tn.solicitante === usuarioActual.nombre;
+          })
+        : transportes.map(function(t, i) { return { t: t, i: i }; });
+
+    if (!lista.length) { tb.innerHTML = '<tr><td colspan="' + cols + '" style="text-align:center;padding:30px;color:#7f8c8d;">No hay solicitudes</td></tr>'; return; }
+    tb.innerHTML = lista.map(function(x) {
+        var t = x.t; var i = x.i;
+        var tn = normalizarTransporte(t);
+        var pc = primerCentro(tn);
+        var estadoVal   = (tn.estado && tn.estado.trim()) ? tn.estado.trim() : 'Pendiente';
+        var estadoColor = estadoVal === 'Aprobado' ? 'badge-done' : estadoVal === 'Atender Observación' ? '' : 'badge-pending';
+        var estadoStyle = estadoVal === 'Atender Observación' ? 'style="background:#e67e22;color:white;"' : '';
+        var estadoBtn   = '<button class="badge ' + estadoColor + '" onclick="abrirFichaTransporte(' + i + ')" ' +
+            estadoStyle + ' style="border:none;cursor:pointer;padding:5px 10px;font-size:12px;font-weight:600;border-radius:4px;">' +
+            estadoVal + '</button>';
+        var colAcciones = '';
+        if (rol !== 'usuario') {
+            var keyT = 'trans_' + i;
+            var btnHabilitar = !edicionHabilitada[keyT]
+                ? '<button class="btn btn-sm" style="background:#8e44ad;color:white;margin-right:4px;" onclick="habilitarEdicion(\'trans\',' + i + ')" title="Habilitar edición al usuario"><i class="fas fa-unlock"></i></button>'
+                : '<span style="font-size:11px;color:#27ae60;margin-right:4px;"><i class="fas fa-unlock-alt"></i> Habilitado</span>';
+            colAcciones = '<td style="white-space:nowrap;">' +
+                btnHabilitar +
                 '<button class="btn btn-sm btn-secondary" onclick="abrirTramitar(' + i + ')" style="margin-right:4px;" title="Tramitar"><i class="fas fa-clipboard-list"></i> Tramitar</button>' +
                 '<button class="btn btn-sm btn-danger" onclick="eliminarTransporte(' + i + ')" title="Eliminar"><i class="fas fa-trash"></i></button>' +
-              '</td>'
-            : '';
+              '</td>';
+        }
         return '<tr>' +
-            '<td><small style="color:#555;">' + (t.correlativo || '—') + '</small></td>' +
-            '<td>' + fmtFecha(t.fechaSolicitud) + '</td>' +
-            '<td>' + fmtFecha(t.fechaMision) + '</td>' +
-            '<td>' + t.solicitante + '</td>' +
-            '<td>' + t.tipoMision + '</td>' +
+            '<td><small style="color:#555;">' + (tn.correlativo || '—') + '</small></td>' +
+            '<td>' + fmtFecha(tn.fechaSolicitud) + '</td>' +
+            '<td>' + fmtFecha(tn.fechaMision) + '</td>' +
+            '<td>' + (tn.solicitante || '') + '</td>' +
+            '<td>' + (tn.tipoMision  || '') + '</td>' +
             '<td>' + pc.depto + '</td>' +
             '<td>' + pc.dist  + '</td>' +
-            '<td>' + t.horaSalida + '</td>' +
-            '<td>' + t.horaRetorno + '</td>' +
+            '<td>' + (tn.horaSalida  || '') + '</td>' +
+            '<td>' + (tn.horaRetorno || '') + '</td>' +
             '<td>' + estadoBtn + '</td>' +
             colAcciones +
         '</tr>';
@@ -1755,7 +2047,7 @@ var fichaTransIdx = -1;
 
 function abrirFichaTransporte(idx) {
     fichaTransIdx = idx;
-    var t   = transportes[idx];
+    var t   = normalizarTransporte(transportes[idx]);
     var det = typeof t.detalles === 'string' ? JSON.parse(t.detalles || '{}') : (t.detalles || {});
 
     // Centros con links Maps y Waze
@@ -1791,21 +2083,30 @@ function abrirFichaTransporte(idx) {
         '</div>';
     };
 
+    var estadoVal = (t.estado && t.estado.trim()) ? t.estado.trim() : 'Pendiente';
+    var estadoColor = estadoVal === 'Aprobado' ? 'badge-done' : estadoVal === 'Atender Observación' ? '' : 'badge-pending';
+    var estadoBadge = '<span class="badge ' + estadoColor + '" style="' + (estadoVal==='Atender Observación'?'background:#e67e22;color:white;padding:3px 8px;border-radius:4px;font-size:12px;':'') + '">' + estadoVal + '</span>';
+
     document.getElementById('fichaTransporteContenido').innerHTML =
         '<div style="background:#f9fbfc;border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:16px;font-size:14px;">' +
-            fila('Estado', '<span class="badge ' + estadoClass + '">' + t.estado + '</span>') +
-            fila('Solicitante',    t.solicitante) +
+            fila('Estado',          estadoBadge) +
+            fila('Solicitante',     t.solicitante || '') +
             fila('Fecha Solicitud', fmtFecha(t.fechaSolicitud)) +
-            fila('Fecha Misión',   fmtFecha(t.fechaMision)) +
-            fila('Hora Salida',    t.horaSalida) +
-            fila('Hora Retorno',   t.horaRetorno) +
-            fila('Tipo de Misión', t.tipoMision) +
-            fila('Acompañantes',   acompsHtml) +
-            fila('Placa Vehículo', t.placa || '—') +
-            fila('Combustible',    t.combustible ? '$' + t.combustible : '—') +
-            fila('Km Salida',      t.kmSalida || '—') +
-            fila('Km Retorno',     t.kmRetorno || '—') +
+            fila('Fecha Misión',    fmtFecha(t.fechaMision)) +
+            fila('Hora Salida',     t.horaSalida  || '') +
+            fila('Hora Retorno',    t.horaRetorno || '') +
+            fila('Tipo de Misión',  t.tipoMision  || '') +
+            fila('Acompañantes',    acompsHtml) +
+            fila('Solicita Motorista', t.solicitarMotorista === 'Si' ? '<span style="color:#e74c3c;font-weight:bold;"><i class="fas fa-user-tie"></i> Sí</span>' : 'No') +
+            fila('Placa Vehículo',  t.placa       || '—') +
+            fila('Combustible',     t.combustible ? '$' + t.combustible : '—') +
+            fila('Km Salida',       t.kmSalida    || '—') +
+            fila('Km Retorno',      t.kmRetorno   || '—') +
         '</div>' +
+        (t.observacion ? '<div style="margin-bottom:12px;padding:12px;background:#fff8e1;border:2px solid #f39c12;border-radius:8px;">' +
+            '<strong style="color:#856404;"><i class="fas fa-exclamation-circle"></i> Observación de la Administración:</strong>' +
+            '<p style="margin:6px 0 0;font-size:14px;">' + t.observacion + '</p>' +
+        '</div>' : '') +
         '<div><strong style="color:var(--primary);">Destino(s):</strong></div>' +
         '<div style="margin-top:8px;">' + (centrosHtml || '—') + '</div>';
 
@@ -1921,8 +2222,12 @@ function imprimirFichaTransporte() {
 
 function abrirTramitar(idx) {
     tramitarIdx = idx;
-    var t   = transportes[idx];
-    var det = typeof t.detalles === 'string' ? JSON.parse(t.detalles || '{}') : (t.detalles || {});
+    var t = transportes[idx];
+
+    // Normalizar objeto por si los campos vienen corridos (registros sin correlativo)
+    var tn = normalizarTransporte(t);
+
+    var det = typeof tn.detalles === 'string' ? JSON.parse(tn.detalles || '{}') : (tn.detalles || {});
     var centrosHtml = '';
 
     if (det.centros && det.centros.length) {
@@ -1939,29 +2244,32 @@ function abrirTramitar(idx) {
         centrosHtml = '<div style="padding:8px;background:white;border-radius:6px;border:1px solid var(--border);">' + det.otroSitio + '</div>';
     }
 
-    var acompsHtml = (t.acompanantes && t.acompanantes.length)
-        ? t.acompanantes.join(', ')
+    var acompsHtml = (tn.acompanantes && tn.acompanantes.length)
+        ? (Array.isArray(tn.acompanantes) ? tn.acompanantes.join(', ') : tn.acompanantes)
         : '—';
 
     document.getElementById('tramitarInfo').innerHTML =
         '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">' +
-            '<div><strong>Solicitante:</strong> ' + t.solicitante + '</div>' +
-            '<div><strong>Estado:</strong> <span class="badge ' + (t.estado==='Aprobado'?'badge-done':'badge-pending') + '">' + t.estado + '</span></div>' +
-            '<div><strong>Fecha Solicitud:</strong> ' + fmtFecha(t.fechaSolicitud) + '</div>' +
-            '<div><strong>Fecha Misión:</strong> '   + fmtFecha(t.fechaMision)    + '</div>' +
-            '<div><strong>Hora Salida:</strong> '    + t.horaSalida  + '</div>' +
-            '<div><strong>Hora Retorno:</strong> '   + t.horaRetorno + '</div>' +
-            '<div><strong>Tipo de Misión:</strong> ' + t.tipoMision  + '</div>' +
+            '<div><strong>Correlativo:</strong> ' + (tn.correlativo || '—') + '</div>' +
+            '<div><strong>Estado:</strong> <span class="badge ' + (tn.estado==='Aprobado'?'badge-done':tn.estado==='Atender Observación'?'':'badge-pending') + '" style="' + (tn.estado==='Atender Observación'?'background:#e67e22;color:white;padding:3px 8px;border-radius:4px;font-size:12px;':'')+'">' + (tn.estado||'Pendiente') + '</span></div>' +
+            '<div><strong>Solicitante:</strong> ' + (tn.solicitante||'') + '</div>' +
+            '<div><strong>Tipo de Misión:</strong> ' + (tn.tipoMision||'') + '</div>' +
+            '<div><strong>Fecha Solicitud:</strong> ' + fmtFecha(tn.fechaSolicitud) + '</div>' +
+            '<div><strong>Fecha Misión:</strong> '   + fmtFecha(tn.fechaMision)    + '</div>' +
+            '<div><strong>Hora Salida:</strong> '    + (tn.horaSalida||'')  + '</div>' +
+            '<div><strong>Hora Retorno:</strong> '   + (tn.horaRetorno||'') + '</div>' +
             '<div><strong>Acompañantes:</strong> '   + acompsHtml    + '</div>' +
+            '<div><strong>Solicita Motorista:</strong> ' + (tn.solicitarMotorista === 'Si' ? '<span style="color:#e74c3c;font-weight:bold;"><i class="fas fa-user-tie"></i> Sí</span>' : 'No') + '</div>' +
         '</div>' +
         '<div><strong>Destino(s):</strong></div>' +
-        '<div style="margin-top:6px;">' + (centrosHtml || '—') + '</div>';
+        '<div style="margin-top:6px;">' + (centrosHtml || '—') + '</div>' +
+        (tn.observacion ? '<div style="margin-top:12px;padding:10px;background:#fff8e1;border:1px solid #f39c12;border-radius:6px;"><strong style="color:#856404;"><i class="fas fa-exclamation-circle"></i> Observación enviada:</strong><p style="margin:4px 0 0;font-size:13px;">' + tn.observacion + '</p></div>' : '');
 
-    // Prellenar si ya tiene datos de tramitación
-    document.getElementById('tramPlaca').value     = t.placa      || '';
-    document.getElementById('tramVales').value     = t.combustible || '';
-    document.getElementById('tramKm').value        = t.kmSalida   || '';
-    document.getElementById('tramKmRetorno').value = t.kmRetorno  || '';
+    document.getElementById('tramPlaca').value        = tn.placa        || '';
+    document.getElementById('tramVales').value        = tn.combustible  || '';
+    document.getElementById('tramKm').value           = tn.kmSalida     || '';
+    document.getElementById('tramKmRetorno').value    = tn.kmRetorno    || '';
+    document.getElementById('tramObservaciones').value = tn.observacion  || '';
 
     document.getElementById('modalTramitar').classList.add('active');
 }
@@ -1982,6 +2290,21 @@ function aprobarDesdeModal() {
     apiCall('updateEstadoTransporte', { index: tramitarIdx, estado: 'Aprobado' }).then(function() {
         renderGTrans(); renderTrans();
         alerta('Solicitud aprobada', 'success');
+        document.getElementById('modalTramitar').classList.remove('active');
+    }).catch(function(err) { alerta('Error: ' + err.message, 'error'); });
+}
+
+function enviarObservacion() {
+    if (tramitarIdx < 0) return;
+    var obs = document.getElementById('tramObservaciones').value.trim();
+    if (!obs) { alerta('Escribe una observación antes de enviar', 'error'); return; }
+
+    transportes[tramitarIdx].observacion = obs;
+    transportes[tramitarIdx].estado      = 'Atender Observación';
+
+    apiCall('updateEstadoTransporte', { index: tramitarIdx, estado: 'Atender Observación' }).then(function() {
+        renderGTrans(); renderTrans();
+        alerta('Observación enviada al solicitante', 'success');
         document.getElementById('modalTramitar').classList.remove('active');
     }).catch(function(err) { alerta('Error: ' + err.message, 'error'); });
 }
@@ -2094,8 +2417,35 @@ function eliminarUsuario(idx) {
 }
 
 // ===================================================
-// SISTEMA DE SOLICITUDES DE ELIMINACIÓN
+// CONTROL DE EDICIÓN POR TIEMPO
 // ===================================================
+var edicionHabilitada = {}; // { "mem_0": true, "trans_2": true }
+
+function puedeEditar(tipo, idx, fechaRegistro) {
+    var rol = usuarioActual ? usuarioActual.rol : '';
+    if (rol === 'programador' || rol === 'administrador') return true;
+
+    // Verificar si admin habilitó manualmente
+    var key = tipo + '_' + idx;
+    if (edicionHabilitada[key]) return true;
+
+    // Verificar si está dentro de la primera hora
+    if (!fechaRegistro) return false;
+    var fechaCreacion = new Date(fechaRegistro);
+    if (isNaN(fechaCreacion)) return false;
+    var ahora = new Date();
+    var diffMs = ahora - fechaCreacion;
+    var diffMin = diffMs / 60000;
+    return diffMin <= 60;
+}
+
+function habilitarEdicion(tipo, idx) {
+    var key = tipo + '_' + idx;
+    edicionHabilitada[key] = true;
+    alerta('Edición habilitada para este registro', 'success');
+    if (tipo === 'mem') renderGMem();
+    else renderGTrans();
+}
 var solicitudesElim = [];
 var solicElimActual = { tipo: null, idx: -1 };
 
