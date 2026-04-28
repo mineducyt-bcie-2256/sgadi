@@ -1159,11 +1159,17 @@ function actualizarBtnCc() {
 
 function obtenerCcs() {
     var ccs = [];
-    document.querySelectorAll('#ccContainer .cc-item').forEach(function(item) {
-        var nombre = item.querySelector('.cc-nombre').value.trim();
-        var cargo  = item.querySelector('.cc-cargo').value.trim();
-        if (nombre) ccs.push({ nombre: nombre, cargo: cargo });
-    });
+    // Buscar en todo el documento para evitar problemas con elementos ocultos
+    var container = document.getElementById('ccContainer');
+    if (!container) return ccs;
+    var items = container.getElementsByClassName('cc-item');
+    for (var i = 0; i < items.length; i++) {
+        var nombre = items[i].querySelector('.cc-nombre');
+        var cargo  = items[i].querySelector('.cc-cargo');
+        var n = nombre ? nombre.value.trim() : '';
+        var c = cargo  ? cargo.value.trim()  : '';
+        if (n) ccs.push({ nombre: n, cargo: c });
+    }
     return ccs;
 }
 
