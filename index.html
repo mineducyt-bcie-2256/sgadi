@@ -823,7 +823,7 @@
 // ===================================================
 // CONFIGURACIÓN
 // ===================================================
-const API_URL = 'https://script.google.com/macros/s/AKfycby_OvFHo_ozKX9I3dHbn8H5KAgf5lyF2p9twj0aIMeQFjTQdE7SvmUVOAW2mYh6wmuj/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbwHWz9EG0e0vj5DeG8nVWMO1ez5677SO_oW49ANgGd9Jg3vMZaWLL39vBqHR_0pu7Ny/exec';
 
 const PROGRAMADOR = {
     nombre: 'Martin Quintanilla',
@@ -1390,7 +1390,7 @@ function grabarMemo() {
     var asunto = document.getElementById('memAsunto').value.trim();
     if (!para || !asunto) { alerta('Completa los campos obligatorios', 'error'); return; }
 
-    var ccs  = obtenerCcs();
+    var ccs = obtenerCcs();
     var memo = {
         referencia:   document.getElementById('memRef').value,
         fecha:        document.getElementById('memFecha').value,
