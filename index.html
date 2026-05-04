@@ -935,7 +935,14 @@ function cargarDatosIniciales() {
     }).catch(function() {});
 
     apiCall('getMemorandums').then(function(res) {
-        if (res.ok) { memorandums = res.data; contMem = res.data.length; }
+        if (res.ok) {
+            memorandums = res.data.map(function(m) {
+                // Normalizar campo Contenido (Sheet puede enviarlo con mayúscula)
+                if (!m.contenido && m.Contenido) m.contenido = m.Contenido;
+                return m;
+            });
+            contMem = memorandums.length;
+        }
     }).catch(function() {});
 
     apiCall('getTransportes').then(function(res) {
@@ -1525,11 +1532,11 @@ function imprimirMem(idx) {
             '.encabezado{text-align:center;position:fixed;top:1cm;left:2.5cm;right:2.5cm;z-index:10;}' +
             '.encabezado img{height:75px;display:block;margin:0 auto;}' +
             '.referencia{position:fixed;top:3.8cm;right:2.5cm;font-weight:bold;font-size:13pt;z-index:10;}' +
-            '.pagina{margin:5cm 2.5cm 3.5cm 2.5cm;}' +
+            '.pagina{margin:4.2cm 2.5cm 3.5cm 2.5cm;}' +
             '.campo-fila{display:flex;margin-bottom:14px;align-items:flex-start;}' +
             '.campo-label{font-weight:bold;width:110px;flex-shrink:0;font-size:12pt;}' +
             '.campo-valor{flex:1;font-size:12pt;line-height:1.5;}' +
-            '.separador{border:none;border-top:1px solid #000;margin:20px 0;}' +
+            '.titulo-mem{text-align:center;font-weight:bold;font-size:14pt;letter-spacing:2px;margin:10px 0 14px 0;}' + '.separador{border:none;border-top:1px solid #000;margin:20px 0;}' +
             '.contenido{font-size:12pt;line-height:1.5;}' +
             '.pie-pagina{position:fixed;bottom:1cm;left:2.5cm;right:2.5cm;text-align:center;font-size:9pt;border-top:1px solid #000;padding-top:5px;}' +
         '</style></head><body>' +
@@ -1542,7 +1549,7 @@ function imprimirMem(idx) {
 
         '</div>' +
         '<div class="referencia">' + (m.referencia || '') + '</div>' +
-        '<div class="campos">' +
+        '<div class="titulo-mem">MEMORANDUM</div>' + '<div class="campos">' +
             '<div class="campo-fila"><div class="campo-label">PARA:</div><div class="campo-valor">' + (m.para || '') + '<br>' + (m.cargoDestino || '') + '</div></div>' +
             (m.cc1Nombre ? '<div class="campo-fila"><div class="campo-label">CC:</div><div class="campo-valor">' + m.cc1Nombre + (m.cc1Cargo ? '<br>' + m.cc1Cargo : '') + '</div></div>' : '') +
             (m.cc2Nombre ? '<div class="campo-fila"><div class="campo-label"></div><div class="campo-valor">' + m.cc2Nombre + (m.cc2Cargo ? '<br>' + m.cc2Cargo : '') + '</div></div>' : '') +
