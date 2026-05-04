@@ -438,7 +438,7 @@
                 </div>
 
                 <button class="btn btn-primary btn-block" onclick="grabarMemo()">
-                    <i class="fas fa-save"></i> Grabar Memorándum
+                    <i class="fas fa-save"></i> Guardar Memorándum
                 </button>
             </div>
 
@@ -561,7 +561,7 @@
                 </div>
 
                 <button class="btn btn-primary btn-block" onclick="grabarTransporte()">
-                    <i class="fas fa-save"></i> Grabar Solicitud de Transporte
+                    <i class="fas fa-save"></i> Guardar Solicitud de Transporte
                 </button>
             </div>
 
@@ -1156,12 +1156,16 @@ function mostrarInnerTab(id, btn) {
 // ===================================================
 function alerta(msg, tipo) {
     var cont = document.getElementById('alertContainer');
+    // Quitar alertas de info anteriores para no acumularlas
+    var prevInfo = cont.querySelectorAll('.alert-info');
+    prevInfo.forEach(function(el) { el.remove(); });
     var el   = document.createElement('div');
     el.className = 'alert alert-' + (tipo || 'info');
     var ico  = { success:'fa-check-circle', error:'fa-exclamation-circle', info:'fa-info-circle' };
     el.innerHTML = '<i class="fas ' + (ico[tipo] || 'fa-info-circle') + '"></i><span>' + msg + '</span>';
     cont.appendChild(el);
-    setTimeout(function() { el.remove(); }, 4000);
+    var tiempo = (tipo === 'info') ? 8000 : 4000;
+    setTimeout(function() { if (el.parentNode) el.remove(); }, tiempo);
 }
 
 // ===================================================
@@ -1595,11 +1599,14 @@ function grabarMemo() {
         fechaRegistro: new Date().toLocaleString()
     };
 
+    mostrarGuardando('Guardando memorándum...');
+
     apiCall('saveMemorandum', memo).then(function(res) {
         if (res && res.ok === false) throw new Error(res.error);
+        ocultarGuardando();
         memorandums.push(memo);
         contMem++;
-        alerta('Memorándum grabado exitosamente', 'success');
+        alerta('Memorándum guardado exitosamente', 'success');
         document.getElementById('memPara').value         = '';
         document.getElementById('memCargoDestino').value = '';
         document.getElementById('memCargoOrigen').value  = '';
@@ -1609,7 +1616,7 @@ function grabarMemo() {
         limpiarCcs();
         refrescarRef();
         irA('mem-consulta', null);
-    }).catch(function(err) { alerta('Error: ' + err.message, 'error'); });
+    }).catch(function(err) { ocultarGuardando(); alerta('Error: ' + err.message, 'error'); });
 }
 
 function renderMem() {
@@ -2025,11 +2032,14 @@ function grabarTransporte() {
         fechaRegistro:     new Date().toLocaleString()
     };
 
+    mostrarGuardando('Guardando solicitud de transporte...');
+
     apiCall('saveTransporte', trans).then(function(res) {
         if (res && res.ok === false) throw new Error(res.error);
+        ocultarGuardando();
         transportes.push(trans);
         contTrans++;
-        alerta('Solicitud de transporte grabada exitosamente', 'success');
+        alerta('Solicitud de transporte guardada exitosamente', 'success');
         document.getElementById('transFechaMision').value = '';
         document.getElementById('transHoraSal').value     = '';
         document.getElementById('transHoraRet').value     = '';
@@ -2039,7 +2049,7 @@ function grabarTransporte() {
         document.getElementById('filaDestino') && (document.getElementById('filaDestino').style.display = 'none');
         refrescarRefTrans();
         irA('trans-consulta', null);
-    }).catch(function(err) { alerta('Error: ' + err.message, 'error'); });
+    }).catch(function(err) { ocultarGuardando(); alerta('Error: ' + err.message, 'error'); });
 }
 
 function renderTrans() {
@@ -2822,6 +2832,33 @@ function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
 function setVal(id, val) { var el = document.getElementById(id); if (el) el.value = val; }
 function getVal(id) { var el = document.getElementById(id); return el ? el.value : ''; }
 
+function mostrarGuardando(msg) {
+    document.getElementById('overlayMensaje').textContent = msg || 'Guardando...';
+    var ov = document.getElementById('overlayGuardando');
+    ov.style.display = 'flex';
+}
+function ocultarGuardando() {
+    document.getElementById('overlayGuardando').style.display = 'none';
+}
+
 </script>
+
+<!-- OVERLAY DE CARGA -->
+<div id="overlayGuardando" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;justify-content:center;align-items:center;">
+    <div style="background:white;border-radius:12px;padding:32px 40px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.2);max-width:300px;">
+        <div style="margin-bottom:16px;">
+            <svg width="48" height="48" viewBox="0 0 48 48" style="animation:girar 1s linear infinite;display:block;margin:0 auto;">
+                <circle cx="24" cy="24" r="20" fill="none" stroke="#e0e0e0" stroke-width="4"/>
+                <path d="M24 4 a20 20 0 0 1 20 20" fill="none" stroke="#1a3a52" stroke-width="4" stroke-linecap="round"/>
+            </svg>
+        </div>
+        <p id="overlayMensaje" style="margin:0;font-size:15px;font-weight:600;color:#1a3a52;font-family:inherit;">Guardando...</p>
+        <p style="margin:6px 0 0;font-size:13px;color:#7f8c8d;font-family:inherit;">Por favor espere</p>
+    </div>
+</div>
+<style>
+@keyframes girar { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+</style>
+
 </body>
 </html>
