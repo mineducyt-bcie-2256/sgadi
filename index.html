@@ -858,7 +858,7 @@
 // ===================================================
 // CONFIGURACIÓN
 // ===================================================
-const API_URL = 'https://script.google.com/macros/s/AKfycbw1--MkHcnWCALUbMo525A40rdZC3QvqVn7ghfNMzLSQGzUcofYHNQXBCndGJu7wShF/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbyZroMuepykcUahHuYiwf5yf-rWlZzplDKq76AE4BDUhw2GpD5RjYh9LSIzkaluTZTg/exec';
 
 const PROGRAMADOR = {
     nombre: 'Martin Quintanilla',
@@ -1604,9 +1604,13 @@ function grabarMemo() {
     apiCall('saveMemorandum', memo).then(function(res) {
         if (res && res.ok === false) throw new Error(res.error);
         ocultarGuardando();
+        // Usar el correlativo asignado por el servidor
+        var refFinal = res.referencia || memo.referencia;
+        memo.referencia = refFinal;
         memorandums.push(memo);
         contMem++;
-        alerta('Memorándum guardado exitosamente', 'success');
+        // Mensaje emergente con el número asignado
+        mostrarMensajeExito('✓ Memorándum guardado exitosamente', refFinal);
         document.getElementById('memPara').value         = '';
         document.getElementById('memCargoDestino').value = '';
         document.getElementById('memCargoOrigen').value  = '';
@@ -2037,9 +2041,13 @@ function grabarTransporte() {
     apiCall('saveTransporte', trans).then(function(res) {
         if (res && res.ok === false) throw new Error(res.error);
         ocultarGuardando();
+        // Usar el correlativo asignado por el servidor
+        var corrFinal = res.correlativo || trans.correlativo;
+        trans.correlativo = corrFinal;
         transportes.push(trans);
         contTrans++;
-        alerta('Solicitud de transporte guardada exitosamente', 'success');
+        // Mensaje emergente con el número asignado
+        mostrarMensajeExito('✓ Solicitud de transporte guardada', corrFinal);
         document.getElementById('transFechaMision').value = '';
         document.getElementById('transHoraSal').value     = '';
         document.getElementById('transHoraRet').value     = '';
@@ -2840,8 +2848,28 @@ function mostrarGuardando(msg) {
 function ocultarGuardando() {
     document.getElementById('overlayGuardando').style.display = 'none';
 }
+function mostrarMensajeExito(titulo, numero) {
+    document.getElementById('exitoTitulo').textContent  = titulo;
+    document.getElementById('exitoNumero').textContent  = numero;
+    var modal = document.getElementById('modalExito');
+    modal.style.display = 'flex';
+    setTimeout(function() { modal.style.display = 'none'; }, 5000);
+}
 
 </script>
+
+<!-- MODAL ÉXITO CON NÚMERO -->
+<div id="modalExito" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.4);z-index:9998;justify-content:center;align-items:center;" onclick="this.style.display='none'">
+    <div style="background:white;border-radius:12px;padding:32px 40px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.2);max-width:340px;border-top:5px solid #27ae60;">
+        <div style="font-size:48px;margin-bottom:12px;">✅</div>
+        <p id="exitoTitulo" style="margin:0 0 10px;font-size:15px;font-weight:600;color:#1a3a52;font-family:inherit;"></p>
+        <div style="background:#f0f4f8;border-radius:8px;padding:12px 20px;margin-bottom:12px;">
+            <p style="margin:0;font-size:13px;color:#7f8c8d;font-family:inherit;">Número asignado:</p>
+            <p id="exitoNumero" style="margin:4px 0 0;font-size:18px;font-weight:bold;color:#27ae60;font-family:inherit;"></p>
+        </div>
+        <p style="margin:0;font-size:12px;color:#aaa;font-family:inherit;">Este mensaje se cerrará automáticamente</p>
+    </div>
+</div>
 
 <!-- OVERLAY DE CARGA -->
 <div id="overlayGuardando" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;justify-content:center;align-items:center;">
