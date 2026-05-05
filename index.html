@@ -1628,20 +1628,29 @@ function renderMem() {
     var rol = usuarioActual ? usuarioActual.rol : '';
     if (!memorandums.length) { tb.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:#7f8c8d;">No hay memorándums registrados</td></tr>'; return; }
     tb.innerHTML = memorandums.map(function(m, i) {
+        var anulado      = m.estado === 'Anulado';
         var paraCompleto = (m.para||'') + (m.cargoDestino ? '<br><small style="color:#7f8c8d;">' + m.cargoDestino + '</small>' : '');
-        var puedeEditar  = (rol === 'programador' || rol === 'administrador') || (m.usuario === usuarioActual.nombre);
-        var btnEditar    = puedeEditar
+        var puedeEdit    = (rol === 'programador' || rol === 'administrador') || (m.usuario === usuarioActual.nombre);
+        var puedeAnular  = (rol === 'programador' || rol === 'administrador') || (m.usuario === usuarioActual.nombre);
+        var btnEditar    = (!anulado && puedeEdit)
             ? '<button class="btn btn-sm btn-secondary" onclick="abrirEditarMem(' + i + ')" style="margin-right:4px;"><i class="fas fa-edit"></i> Editar</button>'
-            : '<span style="font-size:11px;color:#aaa;margin-right:6px;"><i class="fas fa-lock"></i> Solo lectura</span>';
-        return '<tr>' +
-            '<td>' + (m.referencia||'') + '</td>' +
+            : '';
+        var btnAnular    = puedeAnular
+            ? (anulado
+                ? '<button class="btn btn-sm" style="background:#27ae60;color:white;margin-right:4px;" onclick="anularMem(' + i + ', false)"><i class="fas fa-undo"></i> Reactivar</button>'
+                : '<button class="btn btn-sm" style="background:#e74c3c;color:white;margin-right:4px;" onclick="anularMem(' + i + ', true)"><i class="fas fa-ban"></i> Anular</button>')
+            : '';
+        var trStyle = anulado ? 'style="background:#fdecea;"' : '';
+        var textStyle = anulado ? 'style="color:#c0392b;text-decoration:line-through;"' : '';
+        return '<tr ' + trStyle + '>' +
+            '<td ' + textStyle + '>' + (m.referencia||'') + (anulado ? ' <span style="background:#e74c3c;color:white;font-size:10px;padding:1px 5px;border-radius:3px;">ANULADO</span>' : '') + '</td>' +
             '<td>' + fmtFecha(m.fecha) + '</td>' +
             '<td>' + paraCompleto + '</td>' +
             '<td>' + (m.de||'') + '</td>' +
             '<td>' + (m.asunto||'').substring(0,40) + '...</td>' +
-            '<td style="white-space:nowrap;">' + btnEditar +
-                '<button class="btn btn-sm" style="background:var(--primary);color:white;margin-right:4px;" onclick="imprimirMem(' + i + ')"><i class="fas fa-print"></i> Imprimir</button>' +
-                '<button class="btn btn-sm" style="background:#2b579a;color:white;" onclick="descargarWord(' + i + ')"><i class="fas fa-file-word"></i> Word</button>' +
+            '<td style="white-space:nowrap;">' + btnAnular + btnEditar +
+                (!anulado ? '<button class="btn btn-sm" style="background:var(--primary);color:white;margin-right:4px;" onclick="imprimirMem(' + i + ')"><i class="fas fa-print"></i> Imprimir</button>' : '') +
+                (!anulado ? '<button class="btn btn-sm" style="background:#2b579a;color:white;" onclick="descargarWord(' + i + ')"><i class="fas fa-file-word"></i> Word</button>' : '') +
             '</td>' +
         '</tr>';
     }).join('');
@@ -1654,9 +1663,6 @@ function abrirEditarMem(idx) {
     var rol = usuarioActual ? usuarioActual.rol : '';
     if (rol === 'usuario' && m.usuario !== usuarioActual.nombre) {
         alerta('Solo puedes editar memorándums que tú has creado', 'error'); return;
-    }
-    if (rol === 'usuario' && !puedeEditar('mem', idx, m.fechaRegistro)) {
-        alerta('El tiempo de edición (1 hora) ha expirado. Solicita habilitación al administrador.', 'error'); return;
     }
     editMemIdx = idx;
     document.getElementById('editMemElabora').value      = m.quienElabora  || '';
@@ -2244,19 +2250,33 @@ function renderGTrans() {
             estadoStyle + ' style="border:none;cursor:pointer;padding:5px 10px;font-size:12px;font-weight:600;border-radius:4px;">' +
             estadoVal + '</button>';
         var colAcciones = '';
+        var anulado = estadoVal === 'Anulado';
+        var btnAnularTrans = (rol === 'programador' || rol === 'administrador' || tn.usuario === usuarioActual.nombre || tn.solicitante === usuarioActual.nombre)
+            ? (anulado
+                ? '<button class="btn btn-sm" style="background:#27ae60;color:white;margin-right:4px;" onclick="anularTransporte(' + i + ', false)"><i class="fas fa-undo"></i> Reactivar</button>'
+                : '<button class="btn btn-sm" style="background:#e74c3c;color:white;margin-right:4px;" onclick="anularTransporte(' + i + ', true)"><i class="fas fa-ban"></i> Anular</button>')
+            : '';
+
         if (rol !== 'usuario') {
             var keyT = 'trans_' + i;
             var btnHabilitar = !edicionHabilitada[keyT]
                 ? '<button class="btn btn-sm" style="background:#8e44ad;color:white;margin-right:4px;" onclick="habilitarEdicion(\'trans\',' + i + ')" title="Habilitar edición al usuario"><i class="fas fa-unlock"></i></button>'
                 : '<span style="font-size:11px;color:#27ae60;margin-right:4px;"><i class="fas fa-unlock-alt"></i> Habilitado</span>';
             colAcciones = '<td style="white-space:nowrap;">' +
+                btnAnularTrans +
                 btnHabilitar +
-                '<button class="btn btn-sm btn-secondary" onclick="abrirTramitar(' + i + ')" style="margin-right:4px;" title="Tramitar"><i class="fas fa-clipboard-list"></i> Tramitar</button>' +
+                (!anulado ? '<button class="btn btn-sm btn-secondary" onclick="abrirTramitar(' + i + ')" style="margin-right:4px;" title="Tramitar"><i class="fas fa-clipboard-list"></i> Tramitar</button>' : '') +
                 '<button class="btn btn-sm btn-danger" onclick="eliminarTransporte(' + i + ')" title="Eliminar"><i class="fas fa-trash"></i></button>' +
               '</td>';
+        } else {
+            // Usuario: solo botón anular en sus propios registros
+            colAcciones = (tn.usuario === usuarioActual.nombre || tn.solicitante === usuarioActual.nombre)
+                ? '<td style="white-space:nowrap;">' + btnAnularTrans + '</td>'
+                : '<td></td>';
         }
-        return '<tr>' +
-            '<td><small style="color:#555;">' + (tn.correlativo || '—') + '</small></td>' +
+        var trStyle = anulado ? 'style="background:#fdecea;"' : '';
+        return '<tr ' + trStyle + '>' +
+            '<td><small style="color:' + (anulado?'#c0392b':'#555') + ';">' + (tn.correlativo || '—') + (anulado ? ' <span style="background:#e74c3c;color:white;font-size:10px;padding:1px 5px;border-radius:3px;">ANULADO</span>' : '') + '</small></td>' +
             '<td>' + fmtFecha(tn.fechaSolicitud) + '</td>' +
             '<td>' + fmtFecha(tn.fechaMision) + '</td>' +
             '<td>' + (tn.solicitante || '') + '</td>' +
@@ -2713,22 +2733,45 @@ function eliminarUsuario(idx) {
 // ===================================================
 var edicionHabilitada = {}; // { "mem_0": true, "trans_2": true }
 
+function anularMem(idx, anular) {
+    var m   = memorandums[idx];
+    var rol = usuarioActual ? usuarioActual.rol : '';
+    if (rol === 'usuario' && m.usuario !== usuarioActual.nombre) {
+        alerta('Solo puedes anular memorándums que tú has creado', 'error'); return;
+    }
+    var nuevoEstado = anular ? 'Anulado' : 'Pendiente';
+    var msg = anular ? '¿Seguro que deseas anular este memorándum?' : '¿Deseas reactivar este memorándum?';
+    if (!confirm(msg)) return;
+    m.estado = nuevoEstado;
+    apiCall('updateEstadoMemorandum', { index: idx, estado: nuevoEstado }).then(function() {
+        renderMem(); renderGMem();
+        alerta('Memorándum ' + (anular ? 'anulado' : 'reactivado') + ' correctamente', 'success');
+    }).catch(function(err) { alerta('Error: ' + err.message, 'error'); });
+}
+
+function anularTransporte(idx, anular) {
+    var t   = normalizarTransporte(transportes[idx]);
+    var rol = usuarioActual ? usuarioActual.rol : '';
+    if (rol === 'usuario' && t.usuario !== usuarioActual.nombre && t.solicitante !== usuarioActual.nombre) {
+        alerta('Solo puedes anular solicitudes que tú has creado', 'error'); return;
+    }
+    var nuevoEstado = anular ? 'Anulado' : 'Pendiente';
+    var msg = anular ? '¿Seguro que deseas anular esta solicitud?' : '¿Deseas reactivar esta solicitud?';
+    if (!confirm(msg)) return;
+    transportes[idx].estado = nuevoEstado;
+    apiCall('actualizarTransporte', { index: idx, estado: nuevoEstado }).then(function() {
+        renderGTrans(); renderTrans();
+        alerta('Solicitud ' + (anular ? 'anulada' : 'reactivada') + ' correctamente', 'success');
+    }).catch(function(err) { alerta('Error: ' + err.message, 'error'); });
+}
+
 function puedeEditar(tipo, idx, fechaRegistro) {
     var rol = usuarioActual ? usuarioActual.rol : '';
     if (rol === 'programador' || rol === 'administrador') return true;
-
-    // Verificar si admin habilitó manualmente
     var key = tipo + '_' + idx;
     if (edicionHabilitada[key]) return true;
-
-    // Verificar si está dentro de la primera hora
-    if (!fechaRegistro) return false;
-    var fechaCreacion = new Date(fechaRegistro);
-    if (isNaN(fechaCreacion)) return false;
-    var ahora = new Date();
-    var diffMs = ahora - fechaCreacion;
-    var diffMin = diffMs / 60000;
-    return diffMin <= 60;
+    // Edición ilimitada para el usuario en sus propios registros
+    return true;
 }
 
 function habilitarEdicion(tipo, idx) {
