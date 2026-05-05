@@ -858,7 +858,7 @@
 // ===================================================
 // CONFIGURACIÓN
 // ===================================================
-const API_URL = 'https://script.google.com/macros/s/AKfycbyZroMuepykcUahHuYiwf5yf-rWlZzplDKq76AE4BDUhw2GpD5RjYh9LSIzkaluTZTg/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbzcTr1DJyPi3JHlDXZ_xPwhXOawSOMlYhhDGY5JZL7FaddWRbyJyd4KNymoPwjUEdpG/exec';
 
 const PROGRAMADOR = {
     nombre: 'Martin Quintanilla',
@@ -1712,9 +1712,19 @@ function guardarEditMem() {
     m.cc2Cargo  = ccs[1] ? ccs[1].cargo  : '';
     m.cc3Nombre = ccs[2] ? ccs[2].nombre : '';
     m.cc3Cargo  = ccs[2] ? ccs[2].cargo  : '';
-    renderMem(); renderGMem();
-    alerta('Memorándum actualizado', 'success');
-    document.getElementById('modalEditarMem').classList.remove('active');
+
+    mostrarGuardando('Guardando cambios...');
+
+    apiCall('updateMemorandum', { index: editMemIdx, memo: m }).then(function(res) {
+        ocultarGuardando();
+        if (res && res.ok === false) throw new Error(res.error || 'Error al guardar');
+        renderMem(); renderGMem();
+        alerta('Memorándum actualizado correctamente', 'success');
+        document.getElementById('modalEditarMem').classList.remove('active');
+    }).catch(function(err) {
+        ocultarGuardando();
+        alerta('Error al guardar: ' + err.message, 'error');
+    });
 }
 
 function eliminarMem() {
