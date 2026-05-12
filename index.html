@@ -731,15 +731,40 @@
             </div>
         </div>
 
+        <!-- Motorista asignado -->
+        <div class="form-group" style="margin-top:6px;padding:14px;background:#f0f4f8;border:2px solid var(--border);border-radius:8px;">
+            <label style="color:var(--primary);font-weight:600;"><i class="fas fa-user-tie"></i> Motorista Asignado</label>
+            <select id="tramMotoristaSelect" onchange="toggleTramMotorista()" style="width:100%;padding:10px 12px;border:2px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;margin-top:8px;">
+                <option value="">-- Sin motorista --</option>
+                <option value="70709257 - Miguel Ángel Novoa">70709257 - Miguel Ángel Novoa</option>
+                <option value="70709642 - José Antonio Sibrian">70709642 - José Antonio Sibrian</option>
+                <option value="70709046 - José Mario Rodríguez">70709046 - José Mario Rodríguez</option>
+                <option value="otro">Otro...</option>
+            </select>
+            <div id="tramMotoristaOtroBloque" style="display:none;margin-top:10px;display:none;">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                    <div>
+                        <label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;">Nombre del Motorista</label>
+                        <input type="text" id="tramMotoristaOtroNombre" placeholder="Nombre completo" style="width:100%;padding:9px 12px;border:2px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;">
+                    </div>
+                    <div>
+                        <label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;">Teléfono</label>
+                        <input type="text" id="tramMotoristaOtroTel" placeholder="Número de teléfono" style="width:100%;padding:9px 12px;border:2px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;">
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Observaciones (solo admin/programador) -->
         <div class="form-group" style="margin-top:6px;padding:14px;background:#fff8e1;border:2px solid #f39c12;border-radius:8px;">
-            <label style="color:#856404;"><i class="fas fa-exclamation-circle"></i> Observaciones <small style="font-weight:normal;">(solo visible para administración)</small></label>
+            <label style="color:#856404;"><i class="fas fa-exclamation-circle"></i> Observaciones <small style="font-weight:normal;">(visible para el solicitante)</small></label>
             <textarea id="tramObservaciones" placeholder="Escribir observación para el solicitante..." style="width:100%;padding:10px 12px;border:1px solid #f39c12;border-radius:6px;font-size:14px;font-family:inherit;resize:vertical;min-height:70px;margin-top:6px;"></textarea>
         </div>
 
         <div class="modal-footer">
             <button class="btn btn-danger"   onclick="eliminarDesdeModal()"><i class="fas fa-trash"></i> Eliminar</button>
             <button class="btn" style="background:#f39c12;color:white;" onclick="enviarObservacion()"><i class="fas fa-comment-alt"></i> Enviar Observación</button>
+            <button class="btn" style="background:#8e44ad;color:white;" onclick="enTramiteDesdeModal()"><i class="fas fa-spinner"></i> En Trámite</button>
             <button class="btn btn-success"  onclick="aprobarDesdeModal()"><i class="fas fa-check"></i> Aprobar</button>
             <button class="btn btn-secondary" onclick="document.getElementById('modalTramitar').classList.remove('active')">Cerrar</button>
         </div>
@@ -769,6 +794,8 @@
         <!-- Bloque edición desde observación -->
         <div id="fichaModificacionBloque" style="display:none;margin-top:16px;padding:16px;background:#f0f4f8;border:2px solid var(--accent);border-radius:8px;">
             <h3 style="color:var(--primary);margin:0 0 14px;font-size:15px;"><i class="fas fa-edit"></i> Editar Solicitud</h3>
+
+            <!-- Fecha y tipo -->
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
                 <div>
                     <label style="display:block;font-weight:600;margin-bottom:5px;font-size:13px;">Fecha Misión</label>
@@ -783,19 +810,77 @@
                         <option value="seguimiento_ambiental">d) Seguimiento Ambiental y Social</option>
                     </select>
                 </div>
+            </div>
+
+            <!-- Horas -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
                 <div>
                     <label style="display:block;font-weight:600;margin-bottom:5px;font-size:13px;">Hora Salida</label>
-                    <input type="time" id="modHoraSalida" style="width:100%;padding:9px 12px;border:2px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;">
+                    <div style="display:flex;gap:6px;">
+                        <input type="time" id="modHoraSalida" style="flex:1;padding:9px 12px;border:2px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;">
+                        <select id="modAMPMSal" style="padding:9px 8px;border:2px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;">
+                            <option value="AM">AM</option>
+                            <option value="PM">PM</option>
+                        </select>
+                    </div>
                 </div>
                 <div>
                     <label style="display:block;font-weight:600;margin-bottom:5px;font-size:13px;">Hora Retorno</label>
-                    <input type="time" id="modHoraRetorno" style="width:100%;padding:9px 12px;border:2px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;">
+                    <div style="display:flex;gap:6px;">
+                        <input type="time" id="modHoraRetorno" style="flex:1;padding:9px 12px;border:2px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;">
+                        <select id="modAMPMRet" style="padding:9px 8px;border:2px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;">
+                            <option value="AM">AM</option>
+                            <option value="PM">PM</option>
+                        </select>
+                    </div>
                 </div>
             </div>
-            <div style="margin-bottom:14px;">
-                <label style="display:block;font-weight:600;margin-bottom:5px;font-size:13px;">Comentario</label>
-                <textarea id="modComentario" placeholder="Explica los cambios realizados..." style="width:100%;padding:9px 12px;border:2px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;resize:vertical;min-height:70px;"></textarea>
+
+            <!-- Solicitar Motorista -->
+            <div style="margin-bottom:12px;padding:12px;background:white;border:1px solid var(--border);border-radius:6px;display:flex;align-items:center;gap:10px;">
+                <input type="checkbox" id="modSolicitarMotorista" style="width:16px;height:16px;cursor:pointer;accent-color:var(--primary);">
+                <label for="modSolicitarMotorista" style="cursor:pointer;font-size:13px;font-weight:600;margin:0;"><i class="fas fa-user-tie"></i> Solicitar Motorista</label>
             </div>
+
+            <!-- Destino -->
+            <div style="margin-bottom:12px;">
+                <label style="display:block;font-weight:600;margin-bottom:5px;font-size:13px;">Tipo de Destino</label>
+                <div style="display:flex;gap:10px;margin-bottom:8px;">
+                    <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer;">
+                        <input type="radio" name="modTipoDestino" value="centro" id="modDestCentro" onchange="toggleModDestino()"> Centro Educativo
+                    </label>
+                    <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer;">
+                        <input type="radio" name="modTipoDestino" value="otro" id="modDestOtro" onchange="toggleModDestino()"> Otro Sitio
+                    </label>
+                </div>
+                <div id="modCampoOtro" style="display:none;">
+                    <input type="text" id="modOtroSitio" placeholder="Especificar el destino..." style="width:100%;padding:9px 12px;border:2px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;">
+                </div>
+                <div id="modCampoCentro">
+                    <input type="text" id="modBuscarCentro" placeholder="Buscar centro por código o nombre..." style="width:100%;padding:9px 12px;border:2px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;margin-bottom:6px;" oninput="buscarCentroMod(this.value)">
+                    <div id="modResultadosCentro" style="max-height:150px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;background:white;display:none;"></div>
+                    <div id="modCentrosSeleccionados" style="margin-top:8px;"></div>
+                    <button type="button" class="btn-add" onclick="document.getElementById('modBuscarCentro').focus()" style="margin-top:6px;">
+                        <i class="fas fa-plus"></i> Agregar otro centro
+                    </button>
+                </div>
+            </div>
+
+            <!-- Acompañantes -->
+            <div style="margin-bottom:12px;">
+                <label style="display:block;font-weight:600;margin-bottom:8px;font-size:13px;">Acompañantes</label>
+                <div id="modAcompsContainer"></div>
+                <button type="button" class="btn-add" onclick="agregarModAcomp()" style="margin-top:4px;">
+                    <i class="fas fa-plus"></i> Añadir Acompañante
+                </button>
+            </div>
+
+            <!-- Comentario -->
+            <div style="margin-bottom:14px;">
+                <label style="display:block;font-weight:600;margin-bottom:5px;font-size:13px;">Comentario <small style="color:#7f8c8d;">(explica los cambios)</small></label>
+                <textarea id="modComentario" placeholder="Explica los cambios realizados..." style="width:100%;padding:9px 12px;border:2px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;resize:vertical;min-height:60px;"></textarea>
+            </div>
+
             <div style="display:flex;gap:10px;">
                 <button class="btn btn-success" onclick="reenviarSolicitud()"><i class="fas fa-paper-plane"></i> Guardar y Reenviar</button>
                 <button class="btn btn-secondary" onclick="document.getElementById('fichaModificacionBloque').style.display='none'"><i class="fas fa-times"></i> Cancelar</button>
@@ -858,7 +943,7 @@
 // ===================================================
 // CONFIGURACIÓN
 // ===================================================
-const API_URL = 'https://script.google.com/macros/s/AKfycbzcTr1DJyPi3JHlDXZ_xPwhXOawSOMlYhhDGY5JZL7FaddWRbyJyd4KNymoPwjUEdpG/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbxiy-BxEP61My89qPKMYcBtMfdBSyx_VOPIeolnQkJQoZ7HshL_yLWP8JbOjsqAP_3V/exec';
 
 const PROGRAMADOR = {
     nombre: 'Martin Quintanilla',
@@ -905,6 +990,18 @@ function apiCall(action, data) {
 // ===================================================
 window.onload = function() {
     cargarDatosIniciales();
+
+    // Restaurar sesión si existe
+    try {
+        var sesionGuardada = sessionStorage.getItem('sesionUsuario');
+        if (sesionGuardada) {
+            usuarioActual = JSON.parse(sesionGuardada);
+            abrirSistema();
+        }
+    } catch(e) {
+        sessionStorage.removeItem('sesionUsuario');
+    }
+
     // Cerrar modal al hacer clic fuera
     document.getElementById('modalSoporte').addEventListener('click', function(e) {
         if (e.target === this) this.classList.remove('active');
@@ -975,6 +1072,7 @@ function doLogin() {
     // Programador
     if (nombre === PROGRAMADOR.nombre && clave === PROGRAMADOR.clave) {
         usuarioActual = PROGRAMADOR;
+        sessionStorage.setItem('sesionUsuario', JSON.stringify(PROGRAMADOR));
         abrirSistema();
         return;
     }
@@ -990,6 +1088,7 @@ function doLogin() {
 
     if (u) {
         usuarioActual = u;
+        sessionStorage.setItem('sesionUsuario', JSON.stringify(u));
         abrirSistema();
     } else {
         msg.textContent = 'Clave incorrecta';
@@ -1118,6 +1217,7 @@ function abrirSistema() {
 // ===================================================
 function doLogout() {
     usuarioActual = null;
+    sessionStorage.removeItem('sesionUsuario');
     document.getElementById('loginContainer').style.display = 'flex';
     document.getElementById('mainContainer').style.display  = 'none';
     document.getElementById('loginClave').value = '';
@@ -2194,10 +2294,13 @@ function normalizarTransporte(t) {
         try { tn.acompanantes = JSON.parse(tn.acompanantes); } catch(e) { tn.acompanantes = []; }
     }
     // Normalizar campos que pueden venir con mayúscula desde el Sheet
-    tn.placa       = tn.placa       || tn.Placa       || '';
-    tn.combustible = tn.combustible || tn.Combustible || '';
-    tn.kmSalida    = tn.kmSalida    || tn.KmSalida    || '';
-    tn.kmRetorno   = tn.kmRetorno   || tn.KmRetorno   || '';
+    tn.placa            = tn.placa            || tn.Placa            || '';
+    tn.combustible      = tn.combustible      || tn.Combustible      || '';
+    tn.kmSalida         = tn.kmSalida         || tn.KmSalida         || '';
+    tn.kmRetorno        = tn.kmRetorno        || tn.KmRetorno        || '';
+    tn.motoristaNombre  = tn.motoristaNombre  || tn.MotoristaName    || '';
+    tn.motoristaTel     = tn.motoristaTel     || tn.MotoristaTel     || '';
+    tn.observacion      = tn.observacion      || tn.Observacion      || tn.observación || '';
     // Formato antiguo concatenado
     if (tn.estado && tn.estado.indexOf('Atender Observación||') === 0) {
         var partes = tn.estado.split('||');
@@ -2246,7 +2349,7 @@ function renderGTrans() {
         var estadoVal   = (tn.estado && tn.estado.trim()) ? tn.estado.trim() : 'Pendiente';
         var estadoColor = estadoVal === 'Aprobado' ? 'badge-done' : estadoVal === 'Atender Observación' ? '' : 'badge-pending';
         var estadoStyle = estadoVal === 'Atender Observación' ? 'style="background:#e67e22;color:white;"' : '';
-        var estadoBtn   = '<button class="badge ' + estadoColor + '" onclick="abrirFichaTransporte(' + i + ')" ' +
+        var estadoBtn   = '<button class="badge ' + estadoColor + '" onclick="abrirFichaTransportePorCorrelativo(\'' + (tn.correlativo||'') + '\')" ' +
             estadoStyle + ' style="border:none;cursor:pointer;padding:5px 10px;font-size:12px;font-weight:600;border-radius:4px;">' +
             estadoVal + '</button>';
         var colAcciones = '';
@@ -2294,9 +2397,23 @@ function renderGTrans() {
 // ===== FICHA LECTURA TRANSPORTE =====
 var fichaTransIdx = -1;
 
+function abrirFichaTransportePorCorrelativo(correlativo) {
+    // Buscar el índice real por correlativo para evitar mostrar datos incorrectos
+    var idx = -1;
+    for (var i = 0; i < transportes.length; i++) {
+        var tn = normalizarTransporte(transportes[i]);
+        if (tn.correlativo === correlativo) { idx = i; break; }
+    }
+    if (idx < 0) { alerta('No se encontró la solicitud', 'error'); return; }
+    abrirFichaTransporte(idx);
+}
+
 function abrirFichaTransporte(idx) {
     fichaTransIdx = idx;
-    var t   = normalizarTransporte(transportes[idx]);
+    var raw = transportes[idx];
+    var t   = normalizarTransporte(raw);
+    // Asegurar observación desde el objeto raw también
+    if (!t.observacion) t.observacion = raw.observacion || raw.Observacion || raw.observación || '';
     var det = typeof t.detalles === 'string' ? JSON.parse(t.detalles || '{}') : (t.detalles || {});
 
     // Centros con links Maps y Waze
@@ -2332,9 +2449,17 @@ function abrirFichaTransporte(idx) {
         '</div>';
     };
 
-    var estadoVal = (t.estado && t.estado.trim()) ? t.estado.trim() : 'Pendiente';
-    var estadoColor = estadoVal === 'Aprobado' ? 'badge-done' : estadoVal === 'Atender Observación' ? '' : 'badge-pending';
-    var estadoBadge = '<span class="badge ' + estadoColor + '" style="' + (estadoVal==='Atender Observación'?'background:#e67e22;color:white;padding:3px 8px;border-radius:4px;font-size:12px;':'') + '">' + estadoVal + '</span>';
+    var rol = usuarioActual ? usuarioActual.rol : '';
+    var esPropio = (t.usuario === usuarioActual.nombre || t.solicitante === usuarioActual.nombre);
+
+    var estadoVal   = (t.estado && t.estado.trim()) ? t.estado.trim() : 'Pendiente';
+    var estadoStyle = '';
+    if (estadoVal === 'Aprobado')                estadoStyle = 'background:#27ae60;color:white;padding:3px 8px;border-radius:4px;font-size:12px;';
+    else if (estadoVal === 'Atender Observación') estadoStyle = 'background:#e67e22;color:white;padding:3px 8px;border-radius:4px;font-size:12px;';
+    else if (estadoVal === 'Observación Atendida') estadoStyle = 'background:#2980b9;color:white;padding:3px 8px;border-radius:4px;font-size:12px;';
+    else if (estadoVal === 'En Trámite')          estadoStyle = 'background:#8e44ad;color:white;padding:3px 8px;border-radius:4px;font-size:12px;';
+    else estadoStyle = 'background:#f39c12;color:white;padding:3px 8px;border-radius:4px;font-size:12px;';
+    var estadoBadge = '<span style="' + estadoStyle + '">' + estadoVal + '</span>';
 
     document.getElementById('fichaTransporteContenido').innerHTML =
         '<div style="background:#f9fbfc;border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:16px;font-size:14px;">' +
@@ -2351,21 +2476,23 @@ function abrirFichaTransporte(idx) {
             fila('Combustible',     t.combustible ? '$' + t.combustible : '—') +
             fila('Km Salida',       t.kmSalida    || '—') +
             fila('Km Retorno',      t.kmRetorno   || '—') +
+            (t.motoristaNombre ? fila('Motorista Asignado', '<i class="fas fa-user-tie"></i> ' + t.motoristaNombre + (t.motoristaTel ? ' — 📞 ' + t.motoristaTel : '')) : '') +
         '</div>' +
+
+        // Observación: solo visible cuando estado es Atender Observación
         (estadoVal === 'Atender Observación' ?
             '<div style="margin-bottom:12px;padding:14px;background:#fff8e1;border:2px solid #f39c12;border-radius:8px;">' +
-                '<strong style="color:#856404;font-size:14px;display:block;margin-bottom:8px;"><i class="fas fa-exclamation-circle"></i> Observación de la Administración:</strong>' +
-                '<p style="margin:0 0 14px;font-size:14px;line-height:1.6;">' + (t.observacion || 'La administración ha solicitado que atiendas esta solicitud.') + '</p>' +
-                '<div style="display:flex;gap:10px;">' +
-                    '<button class="btn btn-secondary" onclick="abrirEdicionDesdeObservacion()"><i class="fas fa-edit"></i> Editar Solicitud</button>' +
-                    '<button class="btn" style="background:#27ae60;color:white;" onclick="marcarObservacionAtendida()"><i class="fas fa-check"></i> Marcar como Atendido</button>' +
-                '</div>' +
+                '<strong style="color:#856404;font-size:14px;display:block;margin-bottom:6px;"><i class="fas fa-exclamation-circle"></i> Observación de la Administración:</strong>' +
+                '<p style="margin:0 0 12px;font-size:14px;line-height:1.6;">' + (t.observacion || 'La administración ha enviado una observación sobre tu solicitud.') + '</p>' +
+                (esPropio ?
+                    '<div style="display:flex;gap:10px;">' +
+                        '<button class="btn btn-secondary" onclick="abrirEdicionDesdeObservacion()"><i class="fas fa-edit"></i> Editar Solicitud</button>' +
+                        '<button class="btn" style="background:#27ae60;color:white;" onclick="marcarObservacionAtendida()"><i class="fas fa-check"></i> Marcar como Atendido</button>' +
+                    '</div>'
+                : '') +
             '</div>'
-        : (t.observacion ?
-            '<div style="margin-bottom:12px;padding:12px;background:#fff8e1;border:2px solid #f39c12;border-radius:8px;">' +
-                '<strong style="color:#856404;"><i class="fas fa-exclamation-circle"></i> Observación de la Administración:</strong>' +
-                '<p style="margin:6px 0 0;font-size:14px;">' + t.observacion + '</p>' +
-            '</div>' : '')) +
+        : '') +
+
         '<div><strong style="color:var(--primary);">Destino(s):</strong></div>' +
         '<div style="margin-top:8px;">' + (centrosHtml || '—') + '</div>';
 
@@ -2382,37 +2509,163 @@ function reenviarSolicitud() {
     if (fichaTransIdx < 0) return;
     var comentario = document.getElementById('modComentario').value.trim();
     if (!comentario) { alerta('Escribe un comentario explicando los cambios', 'error'); return; }
+
     var t = transportes[fichaTransIdx];
-    t.fechaMision  = document.getElementById('modFechaMision').value;
-    t.tipoMision   = document.getElementById('modTipoMision').value;
-    t.horaSalida   = document.getElementById('modHoraSalida').value;
-    t.horaRetorno  = document.getElementById('modHoraRetorno').value;
-    t.estado       = 'Observación Atendida';
+
+    // Recoger todos los campos editados
+    var horaSalida  = document.getElementById('modHoraSalida').value + ' ' + document.getElementById('modAMPMSal').value;
+    var horaRetorno = document.getElementById('modHoraRetorno').value + ' ' + document.getElementById('modAMPMRet').value;
+    var acomps  = obtenerModAcomps();
+    var motorista = document.getElementById('modSolicitarMotorista').checked ? 'Si' : 'No';
+
+    // Destino
+    var esCentro = document.getElementById('modDestCentro').checked;
+    var detalles;
+    if (esCentro) {
+        detalles = { tipoDestino: 'centro', centros: modCentrosSelec, otroSitio: '', lugar: '' };
+    } else {
+        detalles = { tipoDestino: 'otro', centros: [], otroSitio: document.getElementById('modOtroSitio').value.trim(), lugar: '' };
+    }
+
+    t.fechaMision        = document.getElementById('modFechaMision').value;
+    t.tipoMision         = document.getElementById('modTipoMision').value;
+    t.horaSalida         = horaSalida;
+    t.horaRetorno        = horaRetorno;
+    t.acompanantes       = acomps;
+    t.solicitarMotorista = motorista;
+    t.detalles           = detalles;
+    t.estado             = 'Observación Atendida';
+
+    mostrarGuardando('Guardando cambios...');
+
     apiCall('actualizarTransporte', {
-        index:      fichaTransIdx,
-        estado:     'Observación Atendida',
-        fechaMision: t.fechaMision,
-        tipoMision:  t.tipoMision,
-        horaSalida:  t.horaSalida,
-        horaRetorno: t.horaRetorno
+        index:              fichaTransIdx,
+        estado:             'Observación Atendida',
+        fechaMision:        t.fechaMision,
+        tipoMision:         t.tipoMision,
+        horaSalida:         t.horaSalida,
+        horaRetorno:        t.horaRetorno,
+        acompanantes:       JSON.stringify(acomps),
+        solicitarMotorista: motorista,
+        detalles:           JSON.stringify(detalles)
     }).then(function() {
+        ocultarGuardando();
         renderGTrans(); renderTrans();
-        alerta('Solicitud editada. Estado: "Observación Atendida"', 'success');
+        alerta('Solicitud actualizada. Estado: "Observación Atendida"', 'success');
+        document.getElementById('fichaModificacionBloque').style.display = 'none';
         document.getElementById('modalFichaTransporte').classList.remove('active');
-    }).catch(function(err) { alerta('Error: ' + err.message, 'error'); });
+    }).catch(function(err) { ocultarGuardando(); alerta('Error: ' + err.message, 'error'); });
+}
+
+function agregarModAcomp(valor) {
+    var cont = document.getElementById('modAcompsContainer');
+    var div  = document.createElement('div');
+    div.className = 'acomp-row';
+    div.style.cssText = 'display:flex;gap:8px;margin-bottom:8px;align-items:center;';
+    div.innerHTML =
+        '<input type="text" class="mod-acomp-input" placeholder="Nombre del acompañante" ' +
+        'style="flex:1;padding:9px 12px;border:2px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;" ' +
+        'value="' + (valor || '') + '">' +
+        '<button class="btn-remove" onclick="this.parentElement.remove()" style="white-space:nowrap;">' +
+        '<i class="fas fa-trash"></i> Quitar</button>';
+    cont.appendChild(div);
+}
+
+function obtenerModAcomps() {
+    var vals = [];
+    document.querySelectorAll('#modAcompsContainer .mod-acomp-input').forEach(function(inp) {
+        var v = inp.value.trim();
+        if (v) vals.push(v);
+    });
+    return vals;
+}
+
+function toggleModDestino() {
+    var esCentro = document.getElementById('modDestCentro').checked;
+    document.getElementById('modCampoCentro').style.display = esCentro ? 'block' : 'none';
+    document.getElementById('modCampoOtro').style.display   = esCentro ? 'none'  : 'block';
+}
+
+function buscarCentroMod(q) {
+    var res = document.getElementById('modResultadosCentro');
+    if (!q || q.length < 2) { res.style.display = 'none'; return; }
+    var filtro = q.toLowerCase();
+    var encontrados = CENTROS.filter(function(c) {
+        return c.codigo.includes(q) || c.nombre.toLowerCase().includes(filtro);
+    }).slice(0, 8);
+    if (!encontrados.length) { res.style.display = 'none'; return; }
+    res.style.display = 'block';
+    res.innerHTML = encontrados.map(function(c) {
+        return '<div style="padding:8px 12px;cursor:pointer;border-bottom:1px solid #eee;font-size:13px;" ' +
+            'onmouseover="this.style.background=\'#f0f4f8\'" onmouseout="this.style.background=\'\'" ' +
+            'onclick="seleccionarCentroMod(' + JSON.stringify(c) + ')">' +
+            '<strong>' + c.codigo + '</strong> — ' + c.nombre +
+            ' <span style="color:#7f8c8d;font-size:11px;">(' + c.departamento + ')</span></div>';
+    }).join('');
+}
+
+var modCentrosSelec = [];
+function seleccionarCentroMod(c) {
+    document.getElementById('modResultadosCentro').style.display = 'none';
+    document.getElementById('modBuscarCentro').value = '';
+    if (modCentrosSelec.find(function(x) { return x.codigo === c.codigo; })) return;
+    modCentrosSelec.push(c);
+    renderModCentros();
+}
+
+function renderModCentros() {
+    var cont = document.getElementById('modCentrosSeleccionados');
+    cont.innerHTML = modCentrosSelec.map(function(c, i) {
+        return '<div style="padding:8px 10px;background:white;border:1px solid var(--border);border-radius:6px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;font-size:13px;">' +
+            '<span><strong>' + c.codigo + '</strong> — ' + c.nombre + '</span>' +
+            '<button onclick="modCentrosSelec.splice(' + i + ',1);renderModCentros();" style="background:none;border:none;color:#e74c3c;cursor:pointer;font-size:14px;">✕</button>' +
+        '</div>';
+    }).join('');
 }
 
 function abrirEdicionDesdeObservacion() {
     if (fichaTransIdx < 0) return;
     var t = normalizarTransporte(transportes[fichaTransIdx]);
-    // Prellenar campos
+
+    // Prellenar todos los campos
     document.getElementById('modFechaMision').value  = fechaParaInput(t.fechaMision);
-    document.getElementById('modTipoMision').value   = t.tipoMision || '';
-    var hSal = (t.horaSalida  || '').replace(/ AM| PM/i,'').trim();
-    var hRet = (t.horaRetorno || '').replace(/ AM| PM/i,'').trim();
-    document.getElementById('modHoraSalida').value  = hSal;
-    document.getElementById('modHoraRetorno').value = hRet;
-    document.getElementById('modComentario').value  = '';
+    document.getElementById('modTipoMision').value   = t.tipoMision || 'reunion';
+    document.getElementById('modComentario').value   = '';
+    document.getElementById('modSolicitarMotorista').checked = (t.solicitarMotorista === 'Si');
+
+    // Horas
+    var hSal = (t.horaSalida  || '08:00 AM');
+    var hRet = (t.horaRetorno || '05:00 PM');
+    var parSal = hSal.match(/(\d+:\d+)\s*(AM|PM)/i);
+    var parRet = hRet.match(/(\d+:\d+)\s*(AM|PM)/i);
+    if (parSal) { document.getElementById('modHoraSalida').value = parSal[1]; document.getElementById('modAMPMSal').value = parSal[2].toUpperCase(); }
+    if (parRet) { document.getElementById('modHoraRetorno').value = parRet[1]; document.getElementById('modAMPMRet').value = parRet[2].toUpperCase(); }
+
+    // Acompañantes dinámicos
+    document.getElementById('modAcompsContainer').innerHTML = '';
+    var acomps = Array.isArray(t.acompanantes) ? t.acompanantes : (t.acompanantes ? [t.acompanantes] : []);
+    if (acomps.length) {
+        acomps.forEach(function(a) { if (a) agregarModAcomp(a); });
+    } else {
+        agregarModAcomp('');
+    }
+
+    // Destino
+    var det = typeof t.detalles === 'string' ? JSON.parse(t.detalles || '{}') : (t.detalles || {});
+    modCentrosSelec = [];
+    if (det.tipoDestino === 'centro' && det.centros && det.centros.length) {
+        document.getElementById('modDestCentro').checked = true;
+        document.getElementById('modDestOtro').checked   = false;
+        modCentrosSelec = det.centros.slice();
+        renderModCentros();
+        toggleModDestino();
+    } else {
+        document.getElementById('modDestOtro').checked   = true;
+        document.getElementById('modDestCentro').checked = false;
+        document.getElementById('modOtroSitio').value = det.otroSitio || det.lugar || '';
+        toggleModDestino();
+    }
+
     document.getElementById('fichaModificacionBloque').style.display = 'block';
     document.getElementById('fichaModificacionBloque').scrollIntoView({ behavior: 'smooth' });
 }
@@ -2583,7 +2836,42 @@ function abrirTramitar(idx) {
     document.getElementById('tramKmRetorno').value    = tn.kmRetorno    || '';
     document.getElementById('tramObservaciones').value = tn.observacion  || '';
 
+    // Prellenar motorista
+    var sel = document.getElementById('tramMotoristaSelect');
+    var motoristaNombre = tn.motoristaNombre || '';
+    var motoristaTel    = tn.motoristaTel    || '';
+    var opcionEncontrada = false;
+    for (var o = 0; o < sel.options.length; o++) {
+        if (sel.options[o].value === motoristaNombre) { sel.selectedIndex = o; opcionEncontrada = true; break; }
+    }
+    if (!opcionEncontrada && motoristaNombre) {
+        sel.value = 'otro';
+        document.getElementById('tramMotoristaOtroBloque').style.display = 'block';
+        document.getElementById('tramMotoristaOtroNombre').value = motoristaNombre;
+        document.getElementById('tramMotoristaOtroTel').value    = motoristaTel;
+    } else {
+        document.getElementById('tramMotoristaOtroBloque').style.display = 'none';
+        if (motoristaTel) document.getElementById('tramMotoristaOtroTel').value = motoristaTel;
+    }
+
     document.getElementById('modalTramitar').classList.add('active');
+}
+
+function toggleTramMotorista() {
+    var val = document.getElementById('tramMotoristaSelect').value;
+    document.getElementById('tramMotoristaOtroBloque').style.display = val === 'otro' ? 'block' : 'none';
+}
+
+function obtenerDatosMotorista() {
+    var val = document.getElementById('tramMotoristaSelect').value;
+    if (!val) return { nombre: '', tel: '' };
+    if (val === 'otro') {
+        return {
+            nombre: document.getElementById('tramMotoristaOtroNombre').value.trim(),
+            tel:    document.getElementById('tramMotoristaOtroTel').value.trim()
+        };
+    }
+    return { nombre: val, tel: document.getElementById('tramMotoristaOtroTel').value.trim() };
 }
 
 function aprobarDesdeModal() {
@@ -2592,16 +2880,50 @@ function aprobarDesdeModal() {
     var combustible = document.getElementById('tramVales').value.trim();
     var km          = document.getElementById('tramKm').value.trim();
     var kmRetorno   = document.getElementById('tramKmRetorno').value.trim();
+    var motorista   = obtenerDatosMotorista();
 
-    transportes[tramitarIdx].estado      = 'Aprobado';
-    transportes[tramitarIdx].placa       = placa;
-    transportes[tramitarIdx].combustible = combustible;
-    transportes[tramitarIdx].kmSalida    = km;
-    transportes[tramitarIdx].kmRetorno   = kmRetorno;
+    transportes[tramitarIdx].estado         = 'Aprobado';
+    transportes[tramitarIdx].placa          = placa;
+    transportes[tramitarIdx].combustible    = combustible;
+    transportes[tramitarIdx].kmSalida       = km;
+    transportes[tramitarIdx].kmRetorno      = kmRetorno;
+    transportes[tramitarIdx].motoristaNombre = motorista.nombre;
+    transportes[tramitarIdx].motoristaTel    = motorista.tel;
 
-    apiCall('updateEstadoTransporte', { index: tramitarIdx, estado: 'Aprobado' }).then(function() {
+    apiCall('actualizarTransporte', {
+        index: tramitarIdx, estado: 'Aprobado',
+        placa, combustible, kmSalida: km, kmRetorno,
+        motoristaNombre: motorista.nombre, motoristaTel: motorista.tel
+    }).then(function() {
         renderGTrans(); renderTrans();
         alerta('Solicitud aprobada', 'success');
+        document.getElementById('modalTramitar').classList.remove('active');
+    }).catch(function(err) { alerta('Error: ' + err.message, 'error'); });
+}
+
+function enTramiteDesdeModal() {
+    if (tramitarIdx < 0) return;
+    var placa       = document.getElementById('tramPlaca').value.trim();
+    var combustible = document.getElementById('tramVales').value.trim();
+    var km          = document.getElementById('tramKm').value.trim();
+    var kmRetorno   = document.getElementById('tramKmRetorno').value.trim();
+    var motorista   = obtenerDatosMotorista();
+
+    transportes[tramitarIdx].estado          = 'En Trámite';
+    transportes[tramitarIdx].placa           = placa;
+    transportes[tramitarIdx].combustible     = combustible;
+    transportes[tramitarIdx].kmSalida        = km;
+    transportes[tramitarIdx].kmRetorno       = kmRetorno;
+    transportes[tramitarIdx].motoristaNombre = motorista.nombre;
+    transportes[tramitarIdx].motoristaTel    = motorista.tel;
+
+    apiCall('actualizarTransporte', {
+        index: tramitarIdx, estado: 'En Trámite',
+        placa, combustible, kmSalida: km, kmRetorno,
+        motoristaNombre: motorista.nombre, motoristaTel: motorista.tel
+    }).then(function() {
+        renderGTrans(); renderTrans();
+        alerta('Solicitud marcada como En Trámite', 'success');
         document.getElementById('modalTramitar').classList.remove('active');
     }).catch(function(err) { alerta('Error: ' + err.message, 'error'); });
 }
@@ -2614,7 +2936,7 @@ function enviarObservacion() {
     transportes[tramitarIdx].observacion = obs;
     transportes[tramitarIdx].estado      = 'Atender Observación';
 
-    apiCall('updateEstadoTransporte', { index: tramitarIdx, estado: 'Atender Observación' }).then(function() {
+    apiCall('guardarObservacion', { index: tramitarIdx, observacion: obs, estado: 'Atender Observación' }).then(function() {
         renderGTrans(); renderTrans();
         alerta('Observación enviada al solicitante', 'success');
         document.getElementById('modalTramitar').classList.remove('active');
