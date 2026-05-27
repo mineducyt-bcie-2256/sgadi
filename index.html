@@ -267,6 +267,11 @@
             </div>
             <button class="btn btn-primary" onclick="doLogin()"><i class="fas fa-sign-in-alt"></i> Ingresar</button>
             <div id="loginMsg" class="msg-error"></div>
+            <div style="text-align:center;margin-top:12px;">
+                <button onclick="mostrarRecuperacion()" style="background:none;border:none;color:var(--accent);font-size:13px;cursor:pointer;text-decoration:underline;">
+                    ¿Olvidé mi clave?
+                </button>
+            </div>
         </div>
 
         <!-- REGISTRARSE -->
@@ -924,6 +929,49 @@
     </div>
 </div>
 
+<!-- MODAL RECUPERAR CLAVE -->
+<div id="modalRecuperar" class="modal">
+    <div class="modal-content" style="max-width:420px;">
+        <div class="modal-header"><i class="fas fa-key"></i> Recuperar Clave</div>
+
+        <!-- Paso 1: ingresar correo -->
+        <div id="recupPaso1">
+            <p style="margin-bottom:16px;font-size:14px;color:#555;">Ingresa el correo con el que te registraste y te enviaremos un código de verificación.</p>
+            <div class="form-group">
+                <label><i class="fas fa-envelope"></i> Correo electrónico</label>
+                <input type="email" id="recupCorreo" placeholder="correo@mined.gob.sv" style="width:100%;padding:10px 12px;border:2px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;">
+            </div>
+            <div id="recupMsg1" style="font-size:13px;margin-top:8px;"></div>
+            <div class="modal-footer" style="margin-top:16px;">
+                <button class="btn btn-primary" onclick="enviarCodigoRecuperacion()"><i class="fas fa-paper-plane"></i> Enviar Código</button>
+                <button class="btn btn-secondary" onclick="document.getElementById('modalRecuperar').classList.remove('active')">Cancelar</button>
+            </div>
+        </div>
+
+        <!-- Paso 2: verificar código y nueva clave -->
+        <div id="recupPaso2" style="display:none;">
+            <p style="margin-bottom:16px;font-size:14px;color:#555;">Se envió un código de 4 dígitos a tu correo. Ingrésalo junto con tu nueva clave.</p>
+            <div class="form-group">
+                <label><i class="fas fa-shield-alt"></i> Código de verificación</label>
+                <input type="text" id="recupCodigo" placeholder="Código de 4 dígitos" maxlength="4" style="width:100%;padding:10px 12px;border:2px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;letter-spacing:6px;text-align:center;">
+            </div>
+            <div class="form-group">
+                <label><i class="fas fa-lock"></i> Nueva clave (4 dígitos)</label>
+                <input type="password" id="recupNuevaClave" placeholder="Nueva clave" maxlength="4" style="width:100%;padding:10px 12px;border:2px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;">
+            </div>
+            <div class="form-group">
+                <label><i class="fas fa-lock"></i> Confirmar nueva clave</label>
+                <input type="password" id="recupConfirmarClave" placeholder="Repetir clave" maxlength="4" style="width:100%;padding:10px 12px;border:2px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;">
+            </div>
+            <div id="recupMsg2" style="font-size:13px;margin-top:8px;"></div>
+            <div class="modal-footer" style="margin-top:16px;">
+                <button class="btn btn-success" onclick="verificarYCambiarClave()"><i class="fas fa-check"></i> Cambiar Clave</button>
+                <button class="btn btn-secondary" onclick="document.getElementById('modalRecuperar').classList.remove('active')">Cancelar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- MODAL SOPORTE -->
 <div id="modalSoporte" class="modal">
     <div class="modal-content">
@@ -943,7 +991,7 @@
 // ===================================================
 // CONFIGURACIÓN
 // ===================================================
-const API_URL = 'https://script.google.com/macros/s/AKfycbxiy-BxEP61My89qPKMYcBtMfdBSyx_VOPIeolnQkJQoZ7HshL_yLWP8JbOjsqAP_3V/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbzRxgdw44SLFP92BrY0lbwhjzJhGiEFZbSXpuznJysdo5jos9NMHnUhB2u3sTQeTrBE/exec';
 
 const PROGRAMADOR = {
     nombre: 'Martin Quintanilla',
@@ -1215,6 +1263,118 @@ function abrirSistema() {
 // ===================================================
 // LOGOUT
 // ===================================================
+// ===================================================
+// RECUPERACIÓN DE CLAVE
+// ===================================================
+var recupCodigoGenerado = '';
+var recupUsuarioIdx     = -1;
+
+function mostrarRecuperacion() {
+    document.getElementById('recupCorreo').value         = '';
+    document.getElementById('recupCodigo').value         = '';
+    document.getElementById('recupNuevaClave').value     = '';
+    document.getElementById('recupConfirmarClave').value = '';
+    document.getElementById('recupMsg1').textContent     = '';
+    document.getElementById('recupMsg2').textContent     = '';
+    document.getElementById('recupPaso1').style.display  = 'block';
+    document.getElementById('recupPaso2').style.display  = 'none';
+    recupCodigoGenerado = '';
+    recupUsuarioIdx     = -1;
+    document.getElementById('modalRecuperar').classList.add('active');
+
+    // Cargar usuarios si no están disponibles
+    if (!usuariosRegistrados || usuariosRegistrados.length === 0) {
+        var msg = document.getElementById('recupMsg1');
+        msg.style.color = '#7f8c8d';
+        msg.textContent = 'Cargando...';
+        fetch(API_URL + '?data=' + encodeURIComponent(JSON.stringify({ action: 'getUsuarios' })))
+        .then(function(r) { return r.json(); })
+        .then(function(res) {
+            if (res.ok) usuariosRegistrados = res.data;
+            msg.textContent = '';
+        }).catch(function() { msg.textContent = ''; });
+    }
+}
+
+function enviarCodigoRecuperacion() {
+    var correo = document.getElementById('recupCorreo').value.trim().toLowerCase();
+    var msg    = document.getElementById('recupMsg1');
+    if (!correo) { msg.style.color = '#e74c3c'; msg.textContent = 'Ingresa tu correo electrónico'; return; }
+
+    // Verificar que los usuarios estén cargados
+    if (!usuariosRegistrados || usuariosRegistrados.length === 0) {
+        msg.style.color = '#e74c3c';
+        msg.textContent = 'Por favor espera un momento y vuelve a intentarlo.';
+        return;
+    }
+
+    // Buscar usuario por correo (ignorar mayúsculas y espacios)
+    var u = null;
+    for (var i = 0; i < usuariosRegistrados.length; i++) {
+        var correoRegistrado = (usuariosRegistrados[i].correo || '').trim().toLowerCase();
+        if (correoRegistrado === correo) {
+            u = usuariosRegistrados[i];
+            recupUsuarioIdx = i;
+            break;
+        }
+    }
+
+    if (!u) { msg.style.color = '#e74c3c'; msg.textContent = 'No se encontró un usuario con ese correo'; return; }
+
+    // Generar código de 4 dígitos
+    recupCodigoGenerado = String(Math.floor(1000 + Math.random() * 9000));
+
+    msg.style.color = '#7f8c8d';
+    msg.textContent = 'Enviando código...';
+
+    apiCall('enviarCodigoRecuperacion', { correo: u.correo, nombre: u.nombre, codigo: recupCodigoGenerado })
+    .then(function(res) {
+        if (res && res.ok === false) throw new Error(res.error);
+        msg.style.color   = '#27ae60';
+        msg.textContent   = '✓ Código enviado a ' + u.correo;
+        setTimeout(function() {
+            document.getElementById('recupPaso1').style.display = 'none';
+            document.getElementById('recupPaso2').style.display = 'block';
+        }, 1500);
+    }).catch(function(err) {
+        msg.style.color   = '#e74c3c';
+        msg.textContent   = 'Error al enviar el correo: ' + err.message;
+    });
+}
+
+function verificarYCambiarClave() {
+    var codigo    = document.getElementById('recupCodigo').value.trim();
+    var nueva     = document.getElementById('recupNuevaClave').value.trim();
+    var confirmar = document.getElementById('recupConfirmarClave').value.trim();
+    var msg       = document.getElementById('recupMsg2');
+
+    if (!codigo)    { msg.style.color = '#e74c3c'; msg.textContent = 'Ingresa el código de verificación'; return; }
+    if (codigo !== recupCodigoGenerado) { msg.style.color = '#e74c3c'; msg.textContent = 'Código incorrecto'; return; }
+    if (!nueva || nueva.length !== 4 || !/^\d{4}$/.test(nueva)) { msg.style.color = '#e74c3c'; msg.textContent = 'La clave debe ser de 4 dígitos numéricos'; return; }
+    if (nueva !== confirmar) { msg.style.color = '#e74c3c'; msg.textContent = 'Las claves no coinciden'; return; }
+
+    msg.style.color = '#7f8c8d';
+    msg.textContent = 'Actualizando clave...';
+
+    apiCall('cambiarClave', { index: recupUsuarioIdx, nuevaClave: nueva })
+    .then(function(res) {
+        if (res && res.ok === false) throw new Error(res.error);
+        // Actualizar en memoria
+        if (usuariosRegistrados[recupUsuarioIdx]) {
+            usuariosRegistrados[recupUsuarioIdx].clave = nueva;
+        }
+        msg.style.color = '#27ae60';
+        msg.textContent = '✓ Clave actualizada correctamente';
+        setTimeout(function() {
+            document.getElementById('modalRecuperar').classList.remove('active');
+            alerta('Clave actualizada. Ya puedes ingresar con tu nueva clave.', 'success');
+        }, 1800);
+    }).catch(function(err) {
+        msg.style.color = '#e74c3c';
+        msg.textContent = 'Error: ' + err.message;
+    });
+}
+
 function doLogout() {
     usuarioActual = null;
     sessionStorage.removeItem('sesionUsuario');
