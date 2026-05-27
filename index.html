@@ -556,6 +556,27 @@
                     <button class="btn-add" onclick="agregarAcomp()"><i class="fas fa-plus"></i> Añadir Acompañante</button>
                 </div>
 
+                <!-- Tipo de Transporte -->
+                <div style="margin-top:18px;padding:14px;background:#f0f4f8;border:2px solid var(--border);border-radius:8px;">
+                    <label style="display:block;font-weight:600;font-size:14px;margin-bottom:10px;color:var(--primary);">
+                        <i class="fas fa-car-side"></i> Tipo de Transporte
+                    </label>
+                    <div style="display:flex;gap:20px;margin-bottom:10px;">
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;">
+                            <input type="radio" name="transTipoTransporte" id="transTipoEstandar" value="Estándar" onchange="toggleJustificacion()" style="accent-color:var(--primary);width:16px;height:16px;">
+                            <i class="fas fa-car"></i> Estándar
+                        </label>
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;">
+                            <input type="radio" name="transTipoTransporte" id="transTipoAutomatico" value="Automático" onchange="toggleJustificacion()" style="accent-color:var(--primary);width:16px;height:16px;">
+                            <i class="fas fa-car-battery"></i> Automático
+                        </label>
+                    </div>
+                    <div id="transJustificacionBloque" style="display:none;">
+                        <label style="display:block;font-size:13px;font-weight:600;margin-bottom:5px;color:#555;">Justificación</label>
+                        <textarea id="transJustificacion" placeholder="Justifica el tipo de transporte seleccionado..." style="width:100%;padding:10px 12px;border:2px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;resize:vertical;min-height:70px;"></textarea>
+                    </div>
+                </div>
+
                 <!-- Solicitar Motorista -->
                 <div style="margin-top:18px;padding:14px;background:#f0f4f8;border:2px solid var(--border);border-radius:8px;display:flex;align-items:center;gap:12px;">
                     <input type="checkbox" id="transSolicitarMotorista" style="width:18px;height:18px;cursor:pointer;accent-color:var(--primary);">
@@ -991,7 +1012,7 @@
 // ===================================================
 // CONFIGURACIÓN
 // ===================================================
-const API_URL = 'https://script.google.com/macros/s/AKfycbzRxgdw44SLFP92BrY0lbwhjzJhGiEFZbSXpuznJysdo5jos9NMHnUhB2u3sTQeTrBE/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbzMMZ1ydR2qpiAyBlsbKINT3VI7037b8baTdxqByRBMDoWMx2MkxXu8Pf265Aw0FcTn/exec';
 
 const PROGRAMADOR = {
     nombre: 'Martin Quintanilla',
@@ -2257,6 +2278,11 @@ function refrescarSelectsAcomp() {
     });
 }
 
+function toggleJustificacion() {
+    var tipo = document.querySelector('input[name="transTipoTransporte"]:checked');
+    document.getElementById('transJustificacionBloque').style.display = tipo ? 'block' : 'none';
+}
+
 function grabarTransporte() {
     var fechaMision = document.getElementById('transFechaMision').value;
     var tipo        = document.getElementById('transTipo').value;
@@ -2307,6 +2333,8 @@ function grabarTransporte() {
         detalles:          detalles,
         acompanantes:      acomps,
         solicitarMotorista: document.getElementById('transSolicitarMotorista').checked ? 'Si' : 'No',
+        tipoTransporte:     (document.querySelector('input[name="transTipoTransporte"]:checked') || {}).value || '',
+        justificacionTransporte: document.getElementById('transJustificacion').value.trim(),
         estado:            'Pendiente',
         usuario:           usuarioActual.nombre,
         fechaRegistro:     new Date().toLocaleString()
@@ -2458,9 +2486,11 @@ function normalizarTransporte(t) {
     tn.combustible      = tn.combustible      || tn.Combustible      || '';
     tn.kmSalida         = tn.kmSalida         || tn.KmSalida         || '';
     tn.kmRetorno        = tn.kmRetorno        || tn.KmRetorno        || '';
-    tn.motoristaNombre  = tn.motoristaNombre  || tn.MotoristaName    || '';
-    tn.motoristaTel     = tn.motoristaTel     || tn.MotoristaTel     || '';
-    tn.observacion      = tn.observacion      || tn.Observacion      || tn.observación || '';
+    tn.motoristaNombre      = tn.motoristaNombre      || tn.MotoristaName    || '';
+    tn.motoristaTel         = tn.motoristaTel         || tn.MotoristaTel     || '';
+    tn.observacion          = tn.observacion          || tn.Observacion      || tn.observación || '';
+    tn.tipoTransporte       = tn.tipoTransporte       || tn.TipoTransporte   || '';
+    tn.justificacionTransporte = tn.justificacionTransporte || tn.JustificacionTransporte || '';
     // Formato antiguo concatenado
     if (tn.estado && tn.estado.indexOf('Atender Observación||') === 0) {
         var partes = tn.estado.split('||');
@@ -2632,6 +2662,8 @@ function abrirFichaTransporte(idx) {
             fila('Tipo de Misión',  t.tipoMision  || '') +
             fila('Acompañantes',    acompsHtml) +
             fila('Solicita Motorista', t.solicitarMotorista === 'Si' ? '<span style="color:#e74c3c;font-weight:bold;"><i class="fas fa-user-tie"></i> Sí</span>' : 'No') +
+            (t.tipoTransporte ? fila('Tipo de Transporte', '<i class="fas fa-car-side"></i> ' + t.tipoTransporte) : '') +
+            (t.justificacionTransporte ? fila('Justificación', t.justificacionTransporte) : '') +
             fila('Placa Vehículo',  t.placa       || '—') +
             fila('Combustible',     t.combustible ? '$' + t.combustible : '—') +
             fila('Km Salida',       t.kmSalida    || '—') +
