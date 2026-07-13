@@ -348,6 +348,9 @@
             <div class="menu-item active" data-roles="programador,administrador,usuario" onclick="irA('memorandum', this)">
                 <i class="fas fa-file-alt"></i> Memorándums
             </div>
+            <div class="menu-item" data-roles="programador,administrador,usuario" onclick="irA('memorandum-fosep', this)" style="display:none">
+                <i class="fas fa-file-invoice"></i> Memorándum FOSEP
+            </div>
             <div class="menu-item" data-roles="programador,administrador,usuario" onclick="irA('transporte', this)">
                 <i class="fas fa-car"></i> Transporte
             </div>
@@ -469,6 +472,111 @@
                             <tr><th>Referencia</th><th>Fecha</th><th>Para</th><th>De</th><th>Asunto</th><th>Acciones</th></tr>
                         </thead>
                         <tbody id="tbodyMem"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- == MEMORÁNDUM FOSEP == -->
+            <div id="sec-memorandum-fosep" class="section">
+                <div class="section-header">
+                    <h2><i class="fas fa-file-invoice"></i> Solicitar Memorándum FOSEP</h2>
+                    <button class="btn btn-secondary" onclick="irA('mem-fosep-consulta', null)">
+                        <i class="fas fa-list"></i> Ver Registrados
+                    </button>
+                </div>
+                <div class="form-row">
+                    <div class="form-field">
+                        <label>Quien Elabora</label>
+                        <input type="text" id="memFosepElabora" disabled>
+                    </div>
+                    <div class="form-field">
+                        <label>Fecha</label>
+                        <input type="date" id="memFosepFecha" disabled>
+                    </div>
+                </div>
+                <div class="form-row one">
+                    <div class="form-field">
+                        <label>Referencia</label>
+                        <input type="text" id="memFosepRef" disabled placeholder="UGP-BCIE-FOSEP-001/2026">
+                    </div>
+                </div>
+                <div class="divider"></div>
+                <div class="form-row">
+                    <div class="form-field">
+                        <label>Para (Destinatario)</label>
+                        <input type="text" id="memFosepPara" placeholder="Nombre del destinatario">
+                    </div>
+                    <div class="form-field">
+                        <label>Cargo Destinatario</label>
+                        <input type="text" id="memFosepCargoDestino" placeholder="Cargo del destinatario">
+                    </div>
+                </div>
+
+                <!-- SECCIÓN CC FOSEP -->
+                <div style="margin-top:8px;margin-bottom:8px;">
+                    <button type="button" class="btn btn-secondary btn-sm" id="btnToggleCcFosep" onclick="toggleCcFosep()">
+                        <i class="fas fa-user-plus"></i> Agregar Con Copia (Cc)
+                    </button>
+                    <div id="seccionCcFosep" style="display:none;margin-top:10px;padding:16px;background:#f0f4f8;border:1px solid var(--border);border-radius:8px;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                            <label style="font-weight:600;color:var(--primary);font-size:14px;margin:0;"><i class="fas fa-user-plus"></i> Con Copia (Cc)</label>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="agregarCcFosep()" id="btnAgregarCcFosep">
+                                <i class="fas fa-plus"></i> Agregar Cc
+                            </button>
+                        </div>
+                        <div id="ccContainerFosep"></div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-field">
+                        <label>De (Quién envía)</label>
+                        <input type="text" id="memFosepDe" placeholder="Nombre quien envía">
+                    </div>
+                    <div class="form-field">
+                        <label>Cargo Remitente</label>
+                        <input type="text" id="memFosepCargoOrigen" placeholder="Cargo quien envía">
+                    </div>
+                </div>
+                <div class="form-row one">
+                    <div class="form-field">
+                        <label>Asunto</label>
+                        <textarea id="memFosepAsunto" placeholder="Motivo del memorándum"></textarea>
+                    </div>
+                </div>
+                <div class="form-row one">
+                    <div class="form-field">
+                        <label>Contenido del Memorándum</label>
+                        <textarea id="memFosepContenido" placeholder="Escribir el cuerpo del memorándum..." style="min-height:160px;"></textarea>
+                    </div>
+                </div>
+                <button class="btn btn-primary btn-block" onclick="grabarMemoFosep()">
+                    <i class="fas fa-save"></i> Guardar Memorándum FOSEP
+                </button>
+            </div>
+
+            <!-- == MEMORÁNDUMS FOSEP CONSULTA == -->
+            <div id="sec-mem-fosep-consulta" class="section">
+                <div class="section-header">
+                    <h2><i class="fas fa-list"></i> Memorándums FOSEP Registrados</h2>
+                    <div style="display:flex;gap:8px;">
+                        <button class="btn btn-secondary" onclick="irA('memorandum-fosep', null)">
+                            <i class="fas fa-plus"></i> Nuevo Memorándum FOSEP
+                        </button>
+                        <button class="btn" style="background:var(--primary);color:white;" onclick="imprimirTablaMemFosep()">
+                            <i class="fas fa-print"></i> Imprimir Tabla
+                        </button>
+                        <button class="btn btn-success" onclick="exportarExcelMemFosep()">
+                            <i class="fas fa-file-excel"></i> Exportar Excel
+                        </button>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr><th>Referencia</th><th>Fecha</th><th>Para</th><th>De</th><th>Asunto</th><th>Acciones</th></tr>
+                        </thead>
+                        <tbody id="tbodyMemFosep"></tbody>
                     </table>
                 </div>
             </div>
@@ -1019,7 +1127,7 @@
 // ===================================================
 // CONFIGURACIÓN
 // ===================================================
-const API_URL = 'https://script.google.com/macros/s/AKfycbwQPusVs-Tp2p1nqNu2EQXFKWQgsBojR0vGbwL3HlTTvZEPjFQ33eB3M6ryTV5-ae2Z/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbzX_QJU5aRipeKVXj7SfMDU_ZBGu0arXQp2RjambCPVjpu474rvJex_nUz3sxnc4U46/exec';
 
 const PROGRAMADOR = {
     nombre: 'Martin Quintanilla',
@@ -1034,8 +1142,10 @@ const PROGRAMADOR = {
 let usuarioActual       = null;
 let usuariosRegistrados = [];
 let memorandums         = [];
+let memorandumsFosep    = [];
 let transportes         = [];
 let contMem             = 0;
+let contMemFosep        = 0;
 let contTrans           = 0;
 
 // ===================================================
@@ -1115,6 +1225,16 @@ function cargarDatosIniciales() {
                 return m;
             });
             contMem = memorandums.length;
+        }
+    }).catch(function() {});
+
+    apiCall('getMemorandumsFOSEP').then(function(res) {
+        if (res.ok) {
+            memorandumsFosep = res.data.map(function(m) {
+                if (!m.contenido && m.Contenido) m.contenido = m.Contenido;
+                return m;
+            });
+            contMemFosep = memorandumsFosep.length;
         }
     }).catch(function() {});
 
@@ -1265,6 +1385,7 @@ function abrirSistema() {
     setVal('transSolicitante', usuarioActual.nombre);
 
     refrescarRef();
+    refrescarRefFosep();
     refrescarRefTrans();
     refrescarSelectsAcomp();
 
@@ -1426,10 +1547,12 @@ function irA(seccion, menuItem) {
         menuItem.classList.add('active');
     }
 
-    if (seccion === 'mem-consulta')   renderMem();
+    if (seccion === 'mem-consulta')        renderMem();
+    if (seccion === 'mem-fosep-consulta')  renderMemFosep();
     if (seccion === 'trans-consulta') renderTrans();
     if (seccion === 'gestion')        { renderGMem(); renderGTrans(); }
     if (seccion === 'usuarios')       renderUsuarios();
+    if (seccion === 'memorandum-fosep') refrescarRefFosep();
 }
 
 function mostrarInnerTab(id, btn) {
@@ -1459,7 +1582,236 @@ function alerta(msg, tipo) {
 // ===================================================
 // MEMORÁNDUMS
 // ===================================================
-var numInicioMem = 338; // correlativo inicia en 339
+var numInicioMem     = 338; // correlativo inicia en 339
+var numInicioMemFosep = 0;  // correlativo FOSEP inicia en 1
+
+// ===================================================
+// MEMORÁNDUM FOSEP - FUNCIONES
+// ===================================================
+
+function refrescarRefFosep() {
+    var u   = usuarioActual || {};
+    var hoy = new Date();
+    var anio = hoy.getFullYear();
+    document.getElementById('memFosepElabora').value = u.nombre || '';
+    document.getElementById('memFosepFecha').value   = hoy.toISOString().split('T')[0];
+    document.getElementById('memFosepDe').value      = u.nombre || '';
+    document.getElementById('memFosepCargoOrigen').value = u.cargo || '';
+    // Correlativo tentativo (el definitivo lo asigna el servidor)
+    var siguiente = contMemFosep + numInicioMemFosep + 1;
+    var ref = 'UGP-BCIE-FOSEP-' + String(siguiente).padStart(3, '0') + '/' + anio;
+    document.getElementById('memFosepRef').value = ref;
+}
+
+function toggleCcFosep() {
+    var sec = document.getElementById('seccionCcFosep');
+    var btn = document.getElementById('btnToggleCcFosep');
+    if (sec.style.display === 'none') {
+        sec.style.display = 'block';
+        btn.innerHTML = '<i class="fas fa-times"></i> Ocultar Con Copia (Cc)';
+        if (!document.getElementById('ccContainerFosep').children.length) agregarCcFosep();
+    } else {
+        sec.style.display = 'none';
+        btn.innerHTML = '<i class="fas fa-user-plus"></i> Agregar Con Copia (Cc)';
+        document.getElementById('ccContainerFosep').innerHTML = '';
+    }
+}
+
+function agregarCcFosep() {
+    var container = document.getElementById('ccContainerFosep');
+    var items = container.querySelectorAll('.cc-item');
+    if (items.length >= 3) { alerta('Máximo 3 destinatarios en copia', 'error'); return; }
+    var num = items.length + 1;
+    var div = document.createElement('div');
+    div.className = 'cc-item';
+    div.style.cssText = 'display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-bottom:8px;align-items:center;';
+    div.innerHTML =
+        '<input type="text" class="cc-nombre" placeholder="Nombre Cc ' + num + '" style="padding:8px 12px;border:2px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;">' +
+        '<input type="text" class="cc-cargo"  placeholder="Cargo Cc '  + num + '" style="padding:8px 12px;border:2px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;">' +
+        '<button class="btn btn-sm btn-danger" onclick="this.parentElement.remove()" style="white-space:nowrap;"><i class="fas fa-trash"></i></button>';
+    container.appendChild(div);
+}
+
+function obtenerCcsFosep() {
+    var ccs = [];
+    var container = document.getElementById('ccContainerFosep');
+    if (!container) return ccs;
+    var items = container.getElementsByClassName('cc-item');
+    for (var i = 0; i < items.length; i++) {
+        var nombre = items[i].querySelector('.cc-nombre');
+        var cargo  = items[i].querySelector('.cc-cargo');
+        var n = nombre ? nombre.value.trim() : '';
+        var c = cargo  ? cargo.value.trim()  : '';
+        if (n) ccs.push({ nombre: n, cargo: c });
+    }
+    return ccs;
+}
+
+function limpiarCcsFosep() {
+    document.getElementById('ccContainerFosep').innerHTML = '';
+    document.getElementById('seccionCcFosep').style.display = 'none';
+    document.getElementById('btnToggleCcFosep').innerHTML = '<i class="fas fa-user-plus"></i> Agregar Con Copia (Cc)';
+}
+
+function grabarMemoFosep() {
+    var para   = document.getElementById('memFosepPara').value.trim();
+    var asunto = document.getElementById('memFosepAsunto').value.trim();
+    if (!para || !asunto) { alerta('Completa los campos obligatorios', 'error'); return; }
+
+    var ccs  = obtenerCcsFosep();
+    var hoy  = new Date();
+    var memo = {
+        referencia:   document.getElementById('memFosepRef').value,
+        fecha:        document.getElementById('memFosepFecha').value,
+        quienElabora: document.getElementById('memFosepElabora').value,
+        para:         para,
+        cargoDestino: document.getElementById('memFosepCargoDestino').value.trim(),
+        de:           document.getElementById('memFosepDe').value.trim(),
+        cargoOrigen:  document.getElementById('memFosepCargoOrigen').value.trim(),
+        asunto:       asunto,
+        contenido:    document.getElementById('memFosepContenido').value.trim(),
+        estado:       'Pendiente',
+        usuario:      usuarioActual ? usuarioActual.nombre : '',
+        fechaRegistro: hoy.toLocaleString(),
+        cc1Nombre: ccs[0] ? ccs[0].nombre : '',
+        cc1Cargo:  ccs[0] ? ccs[0].cargo  : '',
+        cc2Nombre: ccs[1] ? ccs[1].nombre : '',
+        cc2Cargo:  ccs[1] ? ccs[1].cargo  : '',
+        cc3Nombre: ccs[2] ? ccs[2].nombre : '',
+        cc3Cargo:  ccs[2] ? ccs[2].cargo  : ''
+    };
+
+    mostrarGuardando('Guardando Memorándum FOSEP...');
+
+    apiCall('saveMemorandumFOSEP', memo).then(function(res) {
+        if (res && res.ok === false) throw new Error(res.error);
+        ocultarGuardando();
+        var refFinal = res.referencia || memo.referencia;
+        memo.referencia = refFinal;
+        memorandumsFosep.push(memo);
+        contMemFosep++;
+        mostrarMensajeExito('✓ Memorándum FOSEP guardado', refFinal);
+        document.getElementById('memFosepPara').value         = '';
+        document.getElementById('memFosepCargoDestino').value = '';
+        document.getElementById('memFosepCargoOrigen').value  = '';
+        document.getElementById('memFosepAsunto').value       = '';
+        document.getElementById('memFosepContenido').value    = '';
+        document.getElementById('memFosepDe').value           = usuarioActual ? usuarioActual.nombre : '';
+        limpiarCcsFosep();
+        refrescarRefFosep();
+        irA('mem-fosep-consulta', null);
+    }).catch(function(err) { ocultarGuardando(); alerta('Error: ' + err.message, 'error'); });
+}
+
+function renderMemFosep() {
+    var tb  = document.getElementById('tbodyMemFosep');
+    var rol = usuarioActual ? usuarioActual.rol : '';
+    if (!memorandumsFosep.length) {
+        tb.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:#7f8c8d;">No hay memorándums FOSEP registrados</td></tr>';
+        return;
+    }
+    tb.innerHTML = memorandumsFosep.map(function(m, i) {
+        var anulado      = m.estado === 'Anulado';
+        var paraCompleto = (m.para||'') + (m.cargoDestino ? '<br><small style="color:#7f8c8d;">' + m.cargoDestino + '</small>' : '');
+        var puedeEdit    = (rol === 'programador' || rol === 'administrador') || (m.usuario === usuarioActual.nombre);
+        var puedeAnular  = puedeEdit;
+        var btnEditar    = (!anulado && puedeEdit)
+            ? '<button class="btn btn-sm btn-secondary" onclick="abrirEditarMemFosep(' + i + ')" style="margin-right:4px;"><i class="fas fa-edit"></i> Editar</button>'
+            : '';
+        var btnAnular    = puedeAnular
+            ? (anulado
+                ? '<button class="btn btn-sm" style="background:#27ae60;color:white;margin-right:4px;" onclick="anularMemFosep(' + i + ', false)"><i class="fas fa-undo"></i> Reactivar</button>'
+                : '<button class="btn btn-sm" style="background:#e74c3c;color:white;margin-right:4px;" onclick="anularMemFosep(' + i + ', true)"><i class="fas fa-ban"></i> Anular</button>')
+            : '';
+        var trStyle   = anulado ? 'style="background:#fdecea;"' : '';
+        var textStyle = anulado ? 'style="color:#c0392b;text-decoration:line-through;"' : '';
+        return '<tr ' + trStyle + '>' +
+            '<td ' + textStyle + '>' + (m.referencia||'') + (anulado ? ' <span style="background:#e74c3c;color:white;font-size:10px;padding:1px 5px;border-radius:3px;">ANULADO</span>' : '') + '</td>' +
+            '<td>' + fmtFecha(m.fecha) + '</td>' +
+            '<td>' + paraCompleto + '</td>' +
+            '<td>' + (m.de||'') + '</td>' +
+            '<td>' + (m.asunto||'').substring(0,40) + '...</td>' +
+            '<td style="white-space:nowrap;">' + btnAnular + btnEditar +
+                (!anulado ? '<button class="btn btn-sm" style="background:var(--primary);color:white;margin-right:4px;" onclick="imprimirMemFosep(' + i + ')"><i class="fas fa-print"></i> Imprimir</button>' : '') +
+                (!anulado ? '<button class="btn btn-sm" style="background:#2b579a;color:white;" onclick="descargarWordFosep(' + i + ')"><i class="fas fa-file-word"></i> Word</button>' : '') +
+            '</td>' +
+        '</tr>';
+    }).join('');
+}
+
+function anularMemFosep(idx, anular) {
+    var m   = memorandumsFosep[idx];
+    var rol = usuarioActual ? usuarioActual.rol : '';
+    if (rol === 'usuario' && m.usuario !== usuarioActual.nombre) {
+        alerta('Solo puedes anular memorándums que tú has creado', 'error'); return;
+    }
+    var nuevoEstado = anular ? 'Anulado' : 'Pendiente';
+    if (!confirm(anular ? '¿Seguro que deseas anular este memorándum FOSEP?' : '¿Deseas reactivar este memorándum FOSEP?')) return;
+    m.estado = nuevoEstado;
+    apiCall('updateEstadoMemorandumFOSEP', { index: idx, estado: nuevoEstado }).then(function() {
+        renderMemFosep();
+        alerta('Memorándum FOSEP ' + (anular ? 'anulado' : 'reactivado') + ' correctamente', 'success');
+    }).catch(function(err) { alerta('Error: ' + err.message, 'error'); });
+}
+
+var editMemFosepIdx = -1;
+function abrirEditarMemFosep(idx) {
+    var m   = memorandumsFosep[idx];
+    var rol = usuarioActual ? usuarioActual.rol : '';
+    if (rol === 'usuario' && m.usuario !== usuarioActual.nombre) {
+        alerta('Solo puedes editar memorándums que tú has creado', 'error'); return;
+    }
+    editMemFosepIdx = idx;
+    // Reutilizamos el mismo modal de edición de memo normal pero con datos FOSEP
+    document.getElementById('editMemFecha').value        = fechaParaInput(m.fecha);
+    document.getElementById('editMemPara').value         = m.para         || '';
+    document.getElementById('editMemCargoDestino').value = m.cargoDestino || '';
+    document.getElementById('editMemDe').value           = m.de           || '';
+    document.getElementById('editMemCargoOrigen').value  = m.cargoOrigen  || '';
+    document.getElementById('editMemAsunto').value       = m.asunto       || '';
+    document.getElementById('editMemContenido').value    = m.contenido    || '';
+    // Cc
+    var ccEditCont = document.getElementById('ccEditContainer');
+    ccEditCont.innerHTML = '';
+    var ccList = [
+        { nombre: m.cc1Nombre, cargo: m.cc1Cargo },
+        { nombre: m.cc2Nombre, cargo: m.cc2Cargo },
+        { nombre: m.cc3Nombre, cargo: m.cc3Cargo }
+    ].filter(function(cc) { return cc.nombre; });
+    ccList.forEach(function(cc) { agregarCcEditConValores(cc.nombre, cc.cargo); });
+    // Marcar que estamos editando FOSEP
+    document.getElementById('modalEditarMem').dataset.modo = 'fosep';
+    document.getElementById('modalEditarMem').classList.add('active');
+}
+
+function imprimirMemFosep(idx) {
+    // Reutiliza imprimirMem pero con datos FOSEP
+    var mOriginal = memorandums;
+    memorandums = memorandumsFosep;
+    imprimirMem(idx);
+    memorandums = mOriginal;
+}
+
+function descargarWordFosep(idx) {
+    var mOriginal = memorandums;
+    memorandums = memorandumsFosep;
+    descargarWord(idx);
+    memorandums = mOriginal;
+}
+
+function imprimirTablaMemFosep() {
+    var mOriginal = memorandums;
+    memorandums = memorandumsFosep;
+    imprimirTablaMem();
+    memorandums = mOriginal;
+}
+
+function exportarExcelMemFosep() {
+    var mOriginal = memorandums;
+    memorandums = memorandumsFosep;
+    exportarExcelMem();
+    memorandums = mOriginal;
+}
 
 // ===== CC (CON COPIA) =====
 function agregarCc() {
@@ -1984,9 +2336,17 @@ function abrirEditarMem(idx) {
 }
 
 function guardarEditMem() {
-    if (editMemIdx < 0) return;
-    var m   = memorandums[editMemIdx];
+    var esFosep = document.getElementById('modalEditarMem').dataset.modo === 'fosep';
+    var idx     = esFosep ? editMemFosepIdx : editMemIdx;
+    var lista   = esFosep ? memorandumsFosep : memorandums;
+    var accion  = esFosep ? 'updateMemorandumFOSEP' : 'updateMemorandum';
+
+    if (idx < 0) return;
+    var m   = lista[idx];
     var rol = usuarioActual ? usuarioActual.rol : '';
+    if (rol === 'usuario' && m.usuario !== usuarioActual.nombre) {
+        alerta('No tienes permiso para editar este memorándum', 'error'); return;
+    }
     if (rol === 'usuario' && m.usuario !== usuarioActual.nombre) {
         alerta('No tienes permiso para editar este memorándum', 'error'); return;
     }
@@ -2009,12 +2369,13 @@ function guardarEditMem() {
 
     mostrarGuardando('Guardando cambios...');
 
-    apiCall('updateMemorandum', { index: editMemIdx, memo: m }).then(function(res) {
+    apiCall(accion, { index: idx, memo: m }).then(function(res) {
         ocultarGuardando();
         if (res && res.ok === false) throw new Error(res.error || 'Error al guardar');
-        renderMem(); renderGMem();
+        if (esFosep) renderMemFosep(); else { renderMem(); renderGMem(); }
         alerta('Memorándum actualizado correctamente', 'success');
         document.getElementById('modalEditarMem').classList.remove('active');
+        document.getElementById('modalEditarMem').dataset.modo = '';
     }).catch(function(err) {
         ocultarGuardando();
         alerta('Error al guardar: ' + err.message, 'error');
