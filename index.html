@@ -474,6 +474,7 @@
                         <tbody id="tbodyMem"></tbody>
                     </table>
                 </div>
+                <div id="paginMem" style="display:flex;justify-content:center;gap:6px;margin-top:14px;flex-wrap:wrap;"></div>
             </div>
 
             <!-- == MEMORÁNDUM FOSEP == -->
@@ -579,6 +580,7 @@
                         <tbody id="tbodyMemFosep"></tbody>
                     </table>
                 </div>
+                <div id="paginMemFosep" style="display:flex;justify-content:center;gap:6px;margin-top:14px;flex-wrap:wrap;"></div>
             </div>
 
             <!-- == TRANSPORTE == -->
@@ -636,6 +638,7 @@
                             <option value="seguimiento_admin">b) Seguimiento Técnico Administrativo</option>
                             <option value="seguimiento_operativo">c) Seguimiento Técnico Operativo</option>
                             <option value="seguimiento_ambiental">d) Seguimiento Ambiental y Social</option>
+                        <option value="fosep">e) FOSEP</option>
                         </select>
                     </div>
                 </div>
@@ -715,6 +718,7 @@
                         <tbody id="tbodyTrans"></tbody>
                     </table>
                 </div>
+                <div id="paginTrans" style="display:flex;justify-content:center;gap:6px;margin-top:14px;flex-wrap:wrap;"></div>
             </div>
 
             <!-- == GESTIÓN SOLICITUDES (ADMIN) == -->
@@ -724,6 +728,7 @@
                 </div>
                 <div class="inner-tabs">
                     <button class="inner-tab-btn active" onclick="mostrarInnerTab('gMem', this)">Memorándums</button>
+                    <button class="inner-tab-btn"        onclick="mostrarInnerTab('gMemFosep', this)">Memorándums FOSEP</button>
                     <button class="inner-tab-btn"        onclick="mostrarInnerTab('gTrans', this)">Gestión de Solicitud de Transporte</button>
                 </div>
                 <div id="gMem" class="inner-tab active">
@@ -733,6 +738,16 @@
                             <tbody id="tbodyGMem"></tbody>
                         </table>
                     </div>
+                    <div id="paginGMem" style="display:flex;justify-content:center;gap:6px;margin-top:14px;flex-wrap:wrap;"></div>
+                </div>
+                <div id="gMemFosep" class="inner-tab">
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>Referencia</th><th>Fecha</th><th>Para</th><th>De</th><th>Asunto</th><th>Acciones</th></tr></thead>
+                            <tbody id="tbodyGMemFosep"></tbody>
+                        </table>
+                    </div>
+                    <div id="paginGMemFosep" style="display:flex;justify-content:center;gap:6px;margin-top:14px;flex-wrap:wrap;"></div>
                 </div>
                 <div id="gTrans" class="inner-tab">
                     <div class="table-container">
@@ -741,6 +756,7 @@
                             <tbody id="tbodyGTrans"></tbody>
                         </table>
                     </div>
+                    <div id="paginGTrans" style="display:flex;justify-content:center;gap:6px;margin-top:14px;flex-wrap:wrap;"></div>
                 </div>
             </div>
 
@@ -949,6 +965,7 @@
                         <option value="seguimiento_admin">b) Seguimiento Técnico Administrativo</option>
                         <option value="seguimiento_operativo">c) Seguimiento Técnico Operativo</option>
                         <option value="seguimiento_ambiental">d) Seguimiento Ambiental y Social</option>
+                        <option value="fosep">e) FOSEP</option>
                     </select>
                 </div>
             </div>
@@ -1550,10 +1567,37 @@ function irA(seccion, menuItem) {
     if (seccion === 'mem-consulta')        renderMem();
     if (seccion === 'mem-fosep-consulta')  renderMemFosep();
     if (seccion === 'trans-consulta') renderTrans();
-    if (seccion === 'gestion')        { renderGMem(); renderGTrans(); }
+    if (seccion === 'gestion')        { renderGMem(); renderGMemFosep(); renderGTrans(); }
     if (seccion === 'usuarios')       renderUsuarios();
     if (seccion === 'memorandum-fosep') refrescarRefFosep();
 }
+
+// ===================================================
+// PAGINACIÓN
+// ===================================================
+var POR_PAGINA = 10;
+var paginas = { mem: 1, memFosep: 1, trans: 1, gMem: 1, gMemFosep: 1, gTrans: 1 };
+
+function renderPaginacion(containerId, total, paginaActual, clave, onCambio) {
+    var cont = document.getElementById(containerId);
+    if (!cont) return;
+    var totalPags = Math.ceil(total / POR_PAGINA);
+    if (totalPags <= 1) { cont.innerHTML = ''; return; }
+    var html = '';
+    for (var i = 1; i <= totalPags; i++) {
+        var activo = i === paginaActual ? 'background:var(--primary);color:white;' : 'background:#f0f4f8;color:var(--primary);';
+        html += '<button onclick="' + onCambio + '(' + i + ')" style="' + activo +
+            'border:1px solid var(--border);border-radius:4px;padding:5px 12px;cursor:pointer;font-size:13px;font-weight:600;">' + i + '</button>';
+    }
+    cont.innerHTML = html;
+}
+
+function cambiarPaginaMem(p) { paginas.mem = p; renderMem(); }
+function cambiarPaginaMemFosep(p) { paginas.memFosep = p; renderMemFosep(); }
+function cambiarPaginaTrans(p) { paginas.trans = p; renderTrans(); }
+function cambiarPaginaGMem(p) { paginas.gMem = p; renderGMem(); }
+function cambiarPaginaGMemFosep(p) { paginas.gMemFosep = p; renderGMemFosep(); }
+function cambiarPaginaGTrans(p) { paginas.gTrans = p; renderGTrans(); }
 
 function mostrarInnerTab(id, btn) {
     document.querySelectorAll('.inner-tab').forEach(function(t) { t.classList.remove('active'); });
@@ -1710,7 +1754,13 @@ function renderMemFosep() {
         tb.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:#7f8c8d;">No hay memorándums FOSEP registrados</td></tr>';
         return;
     }
-    tb.innerHTML = memorandumsFosep.map(function(m, i) {
+    var lista = memorandumsFosep.slice().reverse();
+    var totalPags = Math.ceil(lista.length / POR_PAGINA);
+    if (paginas.memFosep > totalPags) paginas.memFosep = 1;
+    var inicio = (paginas.memFosep - 1) * POR_PAGINA;
+    var pagina = lista.slice(inicio, inicio + POR_PAGINA);
+    tb.innerHTML = pagina.map(function(m) {
+        var i = memorandumsFosep.indexOf(m);
         var anulado      = m.estado === 'Anulado';
         var paraCompleto = (m.para||'') + (m.cargoDestino ? '<br><small style="color:#7f8c8d;">' + m.cargoDestino + '</small>' : '');
         var puedeEdit    = (rol === 'programador' || rol === 'administrador') || (m.usuario === usuarioActual.nombre);
@@ -1737,6 +1787,7 @@ function renderMemFosep() {
             '</td>' +
         '</tr>';
     }).join('');
+    renderPaginacion('paginMemFosep', lista.length, paginas.memFosep, 'memFosep', 'cambiarPaginaMemFosep');
 }
 
 function anularMemFosep(idx, anular) {
@@ -2267,7 +2318,14 @@ function renderMem() {
     var tb  = document.getElementById('tbodyMem');
     var rol = usuarioActual ? usuarioActual.rol : '';
     if (!memorandums.length) { tb.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:#7f8c8d;">No hay memorándums registrados</td></tr>'; return; }
-    tb.innerHTML = memorandums.map(function(m, i) {
+    // Orden inverso (más reciente primero)
+    var lista = memorandums.slice().reverse();
+    var totalPags = Math.ceil(lista.length / POR_PAGINA);
+    if (paginas.mem > totalPags) paginas.mem = 1;
+    var inicio = (paginas.mem - 1) * POR_PAGINA;
+    var pagina = lista.slice(inicio, inicio + POR_PAGINA);
+    tb.innerHTML = pagina.map(function(m) {
+        var i = memorandums.indexOf(m); // índice real
         var anulado      = m.estado === 'Anulado';
         var paraCompleto = (m.para||'') + (m.cargoDestino ? '<br><small style="color:#7f8c8d;">' + m.cargoDestino + '</small>' : '');
         var puedeEdit    = (rol === 'programador' || rol === 'administrador') || (m.usuario === usuarioActual.nombre);
@@ -2294,6 +2352,7 @@ function renderMem() {
             '</td>' +
         '</tr>';
     }).join('');
+    renderPaginacion('paginMem', lista.length, paginas.mem, 'mem', 'cambiarPaginaMem');
 }
 
 var editMemIdx = -1;
@@ -2473,7 +2532,164 @@ function exportarExcelMem() {
 // ===================================================
 // BASE DE DATOS CENTROS EDUCATIVOS
 // ===================================================
-var CENTROS = [{"codigo":"10588","nombre":"COMPLEJO EDUCATIVO \"REPÚBLICA DE CHINA\"","depto":"SONSONATE","distrito":"CALUCO","lat":13.724917,"lon":-89.661278},{"codigo":"10596","nombre":"COMPLEJO EDUCATIVO \u201cCRISTÓBAL IBARRA MEJICANOS\"","depto":"SONSONATE","distrito":"CUISNAHUAT","lat":13.642778,"lon":-89.596139},{"codigo":"13107","nombre":"CENTRO ESCOLAR \"PROFESOR JOSÉ OSCAR RIVERA QUINTANILLA\"","depto":"SAN MIGUEL","distrito":"SAN RAFAEL ORIENTE","lat":13.380167,"lon":-88.353333},{"codigo":"12904","nombre":"CENTRO ESCOLAR \"INGENIERO ANTONIO MEJÍA\"","depto":"SAN MIGUEL","distrito":"LOLOTIQUE","lat":13.556139,"lon":-88.345778},{"codigo":"12920","nombre":"CENTRO ESCOLAR \"SARA POHL DE BORGONOVO\"","depto":"SAN MIGUEL","distrito":"MONCAGUA","lat":13.578778,"lon":-88.288139},{"codigo":"12933","nombre":"CENTRO ESCOLAR \"ERNESTO LIEBES\"","depto":"SAN MIGUEL","distrito":"NUEVA GUADALUPE","lat":13.533917,"lon":-88.348639},{"codigo":"13192","nombre":"CENTRO ESCOLAR \"JOSÉ MATÍAS DELGADO\"","depto":"MORAZÁN","distrito":"GUALOCOCTI","lat":13.815278,"lon":-88.208333},{"codigo":"11972","nombre":"CENTRO ESCOLAR \"PROFESOR FELIPE HUEZO CORDOVA\"","depto":"LA PAZ","distrito":"SAN JUAN NONUALCO","lat":13.501917,"lon":-88.897472},{"codigo":"10092","nombre":"CENTRO ESCOLAR \u201cEL SAUCE\u201d","depto":"SONSONATE","distrito":"SONZACATE","lat":13.740278,"lon":-89.715},{"codigo":"10399","nombre":"CENTRO ESCOLAR \"INSA\"","depto":"SANTA ANA","distrito":"SANTA ANA","lat":13.979917,"lon":-89.564222},{"codigo":"10572","nombre":"CENTRO ESCOLAR \"DE ARMENIA \"","depto":"SONSONATE","distrito":"ARMENIA","lat":13.747472,"lon":-89.496389},{"codigo":"10730","nombre":"CENTRO ESCOLAR \"COLONIA SENSUNAPÁN\"","depto":"SONSONATE","distrito":"SONSONATE","lat":13.713778,"lon":-89.731056},{"codigo":"11945","nombre":"COMPLEJO EDUCATIVO \"GENERAL RAFAEL OSORIO HIJO\"","depto":"LA PAZ","distrito":"PARAISO DE OSORIO","lat":13.638333,"lon":-88.96},{"codigo":"12071","nombre":"CENTRO ESCOLAR \"CUSCATLÁN\"","depto":"LA PAZ","distrito":"SANTIAGO NONUALCO","lat":13.512139,"lon":-88.93975},{"codigo":"11951","nombre":"CENTRO ESCOLAR \"PROFESOR FRANCISCO ADOLFO BLANDÓN\"","depto":"LA PAZ","distrito":"SAN EMIGDIO","lat":13.649556,"lon":-88.973972},{"codigo":"12033","nombre":"CENTRO ESCOLAR \"PROFESOR RAFAEL OSORIO HIJO\"","depto":"LA PAZ","distrito":"SAN RAFAEL OBRAJUELO","lat":13.502306,"lon":-88.923583},{"codigo":"13352","nombre":"COMPLEJO EDUCATIVO PROFESOR VIDAL UMANZOR","depto":"LA UNIÓN","distrito":"CONCEPCION DE ORIENTE","lat":13.795194,"lon":-87.712111},{"codigo":"13545","nombre":"CENTRO ESCOLAR \" REPUBLICA DE ARGENTINA \"","depto":"LA UNIÓN","distrito":"SAN ALEJO","lat":13.431722,"lon":-87.961639},{"codigo":"13501","nombre":"CENTRO ESCOLAR \"RAMON MENDOZA\"","depto":"LA UNIÓN","distrito":"PASAQUINA","lat":13.585694,"lon":-87.840556},{"codigo":"13444","nombre":"CENTRO ESCOLAR \"VICTORIA ZELAYA\"","depto":"LA UNIÓN","distrito":"LA UNION","lat":13.338083,"lon":-87.841667},{"codigo":"12905","nombre":"CENTRO ESCOLAR \"CANTÓN EL PALÓN\"","depto":"SAN MIGUEL","distrito":"LOLOTIQUE","lat":13.573833,"lon":-88.362639},{"codigo":"13021","nombre":"CENTRO ESCOLAR \"COLONIA CARRILLO, CANTÓN EL PAPALÓN\"","depto":"SAN MIGUEL","distrito":"SAN MIGUEL","lat":13.454722,"lon":-88.14725},{"codigo":"13001","nombre":"CENTRO ESCOLAR \"COLONIA SAN FRANCISCO\"","depto":"SAN MIGUEL","distrito":"SAN MIGUEL","lat":13.496611,"lon":-88.18125},{"codigo":"12873","nombre":"COMPLEJO EDUCATIVO \"CHARLAIX\"","depto":"SAN MIGUEL","distrito":"CHIRILAGUA","lat":13.174139,"lon":-88.106472},{"codigo":"11039","nombre":"CENTRO ESCOLAR \"COLONIA LAS MORITAS, CANTÓN LAS MORAS\"","depto":"LA LIBERTAD","distrito":"COLON","lat":13.726389,"lon":-89.353611},{"codigo":"11018","nombre":"CENTRO ESCOLAR \"DE CIUDAD ARCE\"","depto":"LA LIBERTAD","distrito":"CIUDAD ARCE","lat":13.833333,"lon":-89.445278},{"codigo":"11033","nombre":"CENTRO ESCOLAR \"LICENCIADO HECTOR MAURICIO PALOMO SOL\"","depto":"LA LIBERTAD","distrito":"COLON","lat":13.749722,"lon":-89.409167},{"codigo":"12129","nombre":"CENTRO ESCOLAR \"SAN LUIS LA HERRADURA\"","depto":"LA PAZ","distrito":"SAN LUIS LA HERRADURA","lat":13.349278,"lon":-88.9535},{"codigo":"12083","nombre":"INSTITUTO NACIONAL \"JOSÉ SIMEÓN CAÑAS\"","depto":"LA PAZ","distrito":"ZACATECOLUCA","lat":13.517944,"lon":-88.869028},{"codigo":"10716","nombre":"INSTITUTO NACIONAL \"THOMAS JEFFERSON \"","depto":"SONSONATE","distrito":"SONSONATE","lat":13.7295,"lon":-89.721778},{"codigo":"11792","nombre":"INSTITUTO NACIONAL \" WALTER THILO DEININGER \"","depto":"CUSCATLÁN","distrito":"COJUTEPEQUE","lat":13.727222,"lon":-88.949722},{"codigo":"11982","nombre":"COMPLEJO EDUCATIVO \"PROFESOR ALBERTO VARELA\"","depto":"LA PAZ","distrito":"SAN JUAN TALPA","lat":13.505278,"lon":-89.093333},{"codigo":"12979","nombre":"INSTITUTO NACIONAL ISIDRO MENÉNDEZ","depto":"SAN MIGUEL","distrito":"SAN MIGUEL","lat":13.471972,"lon":-88.180417},{"codigo":"10994","nombre":"CENTRO ESCOLAR \"PONCIANA RAMIREZ\"","depto":"CHALATENANGO","distrito":"TEJUTLA","lat":14.173056,"lon":-89.105},{"codigo":"10408","nombre":"COMPLEJO EDUCATIVO \"PROFESOR JOSÉ ARNOLDO SERMEÑO\"","depto":"SANTA ANA","distrito":"SANTA ANA","lat":13.999944,"lon":-89.543722},{"codigo":"11824","nombre":"COMPLEJO EDUCATIVO \u201cJOSÉ MARIA LEMUS P.\"","depto":"CUSCATLÁN","distrito":"MONTE SAN JUAN","lat":13.755694,"lon":-88.949944},{"codigo":"11827","nombre":"COMPLEJO EDUCATIVO \" DOCTOR PIO ROMERO BOSQUE\"","depto":"CUSCATLÁN","distrito":"ORATORIO DE CONCEPCION","lat":13.816111,"lon":-89.056944},{"codigo":"11809","nombre":"CENTRO ESCOLAR \"EULOGIA RIVAS\"","depto":"CUSCATLÁN","distrito":"COJUTEPEQUE","lat":13.721389,"lon":-88.935556},{"codigo":"12024","nombre":"CENTRO ESCOLAR \u201cTIMOTEO LIEVANO\u201d","depto":"LA PAZ","distrito":"SAN PEDRO NONUALCO","lat":13.601472,"lon":-88.926611},{"codigo":"10221","nombre":"COMPLEJO EDUCATIVO \" ANSELMA SÁNCHEZ DE MANCÍA \"","depto":"SANTA ANA","distrito":"EL CONGO","lat":13.90975,"lon":-89.493306},{"codigo":"10428","nombre":"COMPLEJO EDUCATIVO \"HACIENDA SAN CAYETANO\"","depto":"SANTA ANA","distrito":"SANTA ANA","lat":14.025028,"lon":-89.524361},{"codigo":"13241","nombre":"CENTRO ESCOLAR \"BENITO JUAREZ\"","depto":"MORAZÁN","distrito":"OSICALA","lat":13.800194,"lon":-88.154722},{"codigo":"13205","nombre":"COMPLEJO EDUCATIVO \"FLORINDA DE JUAREZ ALEMAN\"","depto":"MORAZÁN","distrito":"JOCOAITIQUE","lat":13.906944,"lon":-88.157778},{"codigo":"12186","nombre":"CENTRO ESCOLAR \"BERNARDO PERDOMO\"","depto":"CABAÑAS","distrito":"ILOBASCO","lat":13.839,"lon":-88.847833},{"codigo":"12278","nombre":"CENTRO ESCOLAR \"DOCTOR IRENEO CHACÓN\"","depto":"CABAÑAS","distrito":"TEJUTEPEQUE","lat":13.851,"lon":-88.907667},{"codigo":"11785","nombre":"COMPLEJO EDUCATIVO \"MARCOS GOMEZ NUÑEZ\"","depto":"CUSCATLÁN","distrito":"CANDELARIA","lat":13.688333,"lon":-88.978611},{"codigo":"11873","nombre":"CENTRO ESCOLAR SAN RAFAEL CEDROS","depto":"CUSCATLÁN","distrito":"SAN RAFAEL CEDROS","lat":13.730639,"lon":-88.887083},{"codigo":"11907","nombre":"CENTRO ESCOLAR \u201cISAACC RUIZ ARAUJO\u201d","depto":"CUSCATLÁN","distrito":"SUCHITOTO","lat":13.938056,"lon":-89.028056},{"codigo":"72071","nombre":"COMPLEJO EDUCATIVO \"DOCTOR GUILLERMO MANUEL UNGO\"","depto":"CUSCATLÁN","distrito":"SUCHITOTO","lat":13.876833,"lon":-89.067722},{"codigo":"11926","nombre":"CENTRO ESCOLAR \"FABIO IGNACIO MAGAÑA\"","depto":"LA PAZ","distrito":"EL ROSARIO","lat":13.496111,"lon":-89.030278},{"codigo":"11178","nombre":"CENTRO ESCOLAR \" CANTÓN ATEOS \"","depto":"LA LIBERTAD","distrito":"SACACOYO","lat":13.740892,"lon":-89.427149},{"codigo":"68123","nombre":"CENTRO ESCOLAR CANTÓN SITIO GRANDE","depto":"LA LIBERTAD","distrito":"SAN JUAN OPICO","lat":13.783611,"lon":-89.330556},{"codigo":"68057","nombre":"CENTRO ESCOLAR CASERÍO DOS DE MAYO, CANTÓN LA LABOR","depto":"LA LIBERTAD","distrito":"JAYAQUE","lat":13.715556,"lon":-89.415},{"codigo":"11209","nombre":"CENTRO ESCOLAR HACIENDA VERACRUZ, CANTÓN BUENA VISTA","depto":"LA LIBERTAD","distrito":"SAN JUAN OPICO","lat":13.9425,"lon":-89.372222},{"codigo":"86408","nombre":"CENTRO ESCOLAR CANTÓN NOMBRE DE DIOS","depto":"LA LIBERTAD","distrito":"SAN JUAN OPICO","lat":13.915,"lon":-89.420556},{"codigo":"68129","nombre":"CENTRO ESCOLAR CANTÓN SANTA TERESA","depto":"LA LIBERTAD","distrito":"SAN MATIAS","lat":13.878333,"lon":-89.306111},{"codigo":"10463","nombre":"CENTRO ESCOLAR TEODORO MORENO","depto":"SANTA ANA","distrito":"SANTA ANA","lat":13.95975,"lon":-89.544028},{"codigo":"11276","nombre":"COMPLEJO EDUCATIVO TALNIQUE","depto":"LA LIBERTAD","distrito":"TALNIQUE","lat":13.671111,"lon":-89.410278},{"codigo":"12907","nombre":"CENTRO ESCOLAR JOSÉ EVARISTO MEJÍA","depto":"SAN MIGUEL","distrito":"LOLOTIQUE","lat":13.56875,"lon":-88.343833},{"codigo":"12856","nombre":"COMPLEJO EDUCATIVO JOSÉ A. MORA","depto":"SAN MIGUEL","distrito":"CHINAMECA","lat":13.531194,"lon":-88.311528},{"codigo":"12991","nombre":"CENTRO ESCOLAR CIUDAD JARDÍN Nº 3","depto":"SAN MIGUEL","distrito":"SAN MIGUEL","lat":13.474944,"lon":-88.194611},{"codigo":"10452","nombre":"CENTRO ESCOLAR VALLE EL CARMEN CANTÓN NATIVIDAD","depto":"SANTA ANA","distrito":"SANTA ANA","lat":14.00675,"lon":-89.493472},{"codigo":"10543","nombre":"CENTRO ESCOLAR MAGDALENO BARCENAS FLORES","depto":"SANTA ANA","distrito":"TEXISTEPEQUE","lat":14.145444,"lon":-89.561472},{"codigo":"10797","nombre":"CENTRO ESCOLAR \"HÉROES DEL 11 DE ENERO\"","depto":"CHALATENANGO","distrito":"CHALATENANGO","lat":14.043361,"lon":-88.937528},{"codigo":"10865","nombre":"CENTRO ESCOLAR \"22 DE JUNIO\"","depto":"CHALATENANGO","distrito":"LA PALMA","lat":14.31525,"lon":-89.170139},{"codigo":"12857","nombre":"CENTRO ESCOLAR \"JULIÁN APARICIO\"","depto":"SAN MIGUEL","distrito":"CHINAMECA","lat":13.510306,"lon":-88.345528},{"codigo":"12269","nombre":"CENTRO ESCOLAR \"FERMÍN VELASCO\"","depto":"CABAÑAS","distrito":"SENSUNTEPEQUE","lat":13.87645,"lon":-88.622867},{"codigo":"10444","nombre":"CENTRO ESCOLAR CANTÓN LOS APOYOS","depto":"SANTA ANA","distrito":"SANTA ANA","lat":14.028306,"lon":-89.442139},{"codigo":"10447","nombre":"CENTRO ESCOLAR CASERÍO EL AMATILLO","depto":"SANTA ANA","distrito":"SANTA ANA","lat":14.051194,"lon":-89.468806},{"codigo":"62096","nombre":"CENTRO ESCOLAR CASERÍO LAS MARIAS, CANTÓN LOS APOYOS","depto":"SANTA ANA","distrito":"SANTA ANA","lat":14.051139,"lon":-89.435306},{"codigo":"10527","nombre":"CENTRO ESCOLAR CASERÍO TEXIS JUNCTION, CANTÓN CHILCUYO","depto":"SANTA ANA","distrito":"TEXISTEPEQUE","lat":14.10575,"lon":-89.507833},{"codigo":"68118","nombre":"CENTRO ESCOLAR CANTÓN SAN JOSE LA CUEVA","depto":"LA LIBERTAD","distrito":"SAN JUAN OPICO","lat":13.946125,"lon":-89.393293},{"codigo":"64042","nombre":"CENTRO ESCOLAR CANTÓN TAPALCHUCUT NORTE","depto":"SONSONATE","distrito":"IZALCO","lat":13.766167,"lon":-89.683694},{"codigo":"12178","nombre":"CENTRO ESCOLAR CANTÓN LA QUESERA","depto":"CABAÑAS","distrito":"ILOBASCO","lat":13.824583,"lon":-88.8075},{"codigo":"12180","nombre":"COMPLEJO EDUCATIVO CASERÍO RANCHO QUEMADO, CANTÓN MAQUILISHUAT","depto":"CABAÑAS","distrito":"ILOBASCO","lat":13.813417,"lon":-88.794633},{"codigo":"64113","nombre":"CENTRO ESCOLAR CASERIO COLONIA ARTURO ARMANDO MOLINA, CANTON EL EDEN","depto":"SONSONATE","distrito":"ACAJUTLA","lat":13.624056,"lon":-89.740722},{"codigo":"68030","nombre":"CENTRO ESCOLAR CANTON SAN ANTONIO","depto":"LA LIBERTAD","distrito":"COMASAGUA","lat":13.6425,"lon":-89.409167},{"codigo":"13218","nombre":"CENTRO ESCOLAR \"GENERAL FRANCISCO MORAZÁN\"","depto":"MORAZÁN","distrito":"JOCORO","lat":13.610056,"lon":-88.024167},{"codigo":"10462","nombre":"CENTRO ESCOLAR CANTÓN TABLÓN MATAZANO","depto":"SANTA ANA","distrito":"SANTA ANA","lat":13.941083,"lon":-89.619111},{"codigo":"13502","nombre":"CENTRO ESCOLAR CASERÍO LA CEIBA CANTÓN PUEBLO","depto":"LA UNIÓN","distrito":"POLOROS","lat":13.83675,"lon":-87.825083},{"codigo":"11048","nombre":"CENTRO ESCOLAR CASERÍO SANTA ADELAIDA","depto":"LA LIBERTAD","distrito":"COMASAGUA","lat":13.661944,"lon":-89.371667},{"codigo":"13459","nombre":"COMPLEJO EDUCATIVO CATALINO AMAYA","depto":"LA UNIÓN","distrito":"NUEVA ESPARTA","lat":13.876167,"lon":-87.839528},{"codigo":"82078","nombre":"COMPLEJO EDUCATIVO CANTÓN EL JOBO","depto":"SAN MIGUEL","distrito":"MONCAGUA","lat":13.515083,"lon":-88.299611},{"codigo":"10559","nombre":"CENTRO ESCOLAR CANTÓN EL SUNZA","depto":"SONSONATE","distrito":"ACAJUTLA","lat":13.636583,"lon":-89.845306},{"codigo":"10544","nombre":"CENTRO ESCOLAR BERND GRABS","depto":"SONSONATE","distrito":"ACAJUTLA","lat":13.591083,"lon":-89.826667},{"codigo":"13008","nombre":"CENTRO ESCOLAR CASERÍO CHAPARRASTIQUE, CANTÓN EL NIÑO","depto":"SAN MIGUEL","distrito":"SAN MIGUEL","lat":13.427333,"lon":-88.227583},{"codigo":"13332","nombre":"CENTRO ESCOLAR CANTÓN TULIMA","depto":"LA UNIÓN","distrito":"ANAMOROS","lat":13.696,"lon":-87.868}];
+var CENTROS = [
+{"codigo":"10588","nombre":"COMPLEJO EDUCATIVO \"REPÚBLICA DE CHINA\"","departamento":"SONSONATE","municipio":"","distrito":"CALUCO","latitud":"13.724917","longitud":"-89.661278"},
+{"codigo":"10596","nombre":"COMPLEJO EDUCATIVO “CRISTÓBAL IBARRA MEJICANOS\"","departamento":"SONSONATE","municipio":"","distrito":"CUISNAHUAT","latitud":"13.642778","longitud":"-89.596139"},
+{"codigo":"13107","nombre":"CENTRO ESCOLAR \"PROFESOR JOSÉ OSCAR RIVERA QUINTANILLA\"","departamento":"SAN MIGUEL","municipio":"","distrito":"SAN RAFAEL ORIENTE","latitud":"13.380167","longitud":"-88.353333"},
+{"codigo":"12904","nombre":"CENTRO ESCOLAR \"INGENIERO ANTONIO MEJÍA\"","departamento":"SAN MIGUEL","municipio":"","distrito":"LOLOTIQUE","latitud":"13.556139","longitud":"-88.345778"},
+{"codigo":"12920","nombre":"CENTRO ESCOLAR \"SARA POHL DE BORGONOVO\"","departamento":"SAN MIGUEL","municipio":"","distrito":"MONCAGUA","latitud":"13.578778","longitud":"-88.288139"},
+{"codigo":"12933","nombre":"CENTRO ESCOLAR \"ERNESTO LIEBES\"","departamento":"SAN MIGUEL","municipio":"","distrito":"NUEVA GUADALUPE","latitud":"13.533917","longitud":"-88.348639"},
+{"codigo":"13192","nombre":"CENTRO ESCOLAR \"JOSÉ MATÍAS DELGADO\"","departamento":"MORAZÁN","municipio":"","distrito":"GUALOCOCTI","latitud":"13.815278","longitud":"-88.208333"},
+{"codigo":"11972","nombre":"CENTRO ESCOLAR \"PROFESOR FELIPE HUEZO CORDOVA\"","departamento":"LA PAZ","municipio":"","distrito":"SAN JUAN NONUALCO","latitud":"13.501917","longitud":"-88.897472"},
+{"codigo":"10092","nombre":"CENTRO ESCOLAR “EL SAUCE”","departamento":"SONSONATE","municipio":"","distrito":"SONZACATE","latitud":"13.740278","longitud":"-89.715000"},
+{"codigo":"10399","nombre":"CENTRO ESCOLAR \"INSA\"","departamento":"SANTA ANA","municipio":"","distrito":"SANTA ANA","latitud":"13.979917","longitud":"-89.564222"},
+{"codigo":"10572","nombre":"CENTRO ESCOLAR \"DE ARMENIA \"","departamento":"SONSONATE","municipio":"","distrito":"ARMENIA","latitud":"13.747472","longitud":"-89.496389"},
+{"codigo":"10730","nombre":"CENTRO ESCOLAR \"COLONIA SENSUNAPÁN\"","departamento":"SONSONATE","municipio":"","distrito":"SONSONATE","latitud":"13.713778","longitud":"-89.731056"},
+{"codigo":"11945","nombre":"COMPLEJO EDUCATIVO \"GENERAL RAFAEL OSORIO HIJO\"","departamento":"LA PAZ","municipio":"","distrito":"PARAISO DE OSORIO","latitud":"13.638333","longitud":"-88.960000"},
+{"codigo":"12071","nombre":"CENTRO ESCOLAR \"CUSCATLÁN\"","departamento":"LA PAZ","municipio":"","distrito":"SANTIAGO NONUALCO","latitud":"13.512139","longitud":"-88.939750"},
+{"codigo":"11951","nombre":"CENTRO ESCOLAR \"PROFESOR FRANCISCO ADOLFO BLANDÓN\"","departamento":"LA PAZ","municipio":"","distrito":"SAN EMIGDIO","latitud":"13.649556","longitud":"-88.973972"},
+{"codigo":"12033","nombre":"CENTRO ESCOLAR \"PROFESOR RAFAEL OSORIO HIJO\"","departamento":"LA PAZ","municipio":"","distrito":"SAN RAFAEL OBRAJUELO","latitud":"13.502306","longitud":"-88.923583"},
+{"codigo":"13352","nombre":"COMPLEJO EDUCATIVO PROFESOR VIDAL UMANZOR","departamento":"LA UNIÓN","municipio":"","distrito":"CONCEPCION DE ORIENTE","latitud":"13.795194","longitud":"-87.712111"},
+{"codigo":"13545","nombre":"CENTRO ESCOLAR \" REPUBLICA DE ARGENTINA \"","departamento":"LA UNIÓN","municipio":"","distrito":"SAN ALEJO","latitud":"13.431722","longitud":"-87.961639"},
+{"codigo":"13501","nombre":"CENTRO ESCOLAR \"RAMON MENDOZA\"","departamento":"LA UNIÓN","municipio":"","distrito":"PASAQUINA","latitud":"13.585694","longitud":"-87.840556"},
+{"codigo":"13444","nombre":"CENTRO ESCOLAR \"VICTORIA ZELAYA\"","departamento":"LA UNIÓN","municipio":"","distrito":"LA UNION","latitud":"13.338083","longitud":"-87.841667"},
+{"codigo":"12905","nombre":"CENTRO ESCOLAR \"CANTÓN EL PALÓN\"","departamento":"SAN MIGUEL","municipio":"","distrito":"LOLOTIQUE","latitud":"13.573833","longitud":"-88.362639"},
+{"codigo":"13021","nombre":"CENTRO ESCOLAR \"COLONIA CARRILLO, CANTÓN EL PAPALÓN\"","departamento":"SAN MIGUEL","municipio":"","distrito":"SAN MIGUEL","latitud":"13.454722","longitud":"-88.147250"},
+{"codigo":"13001","nombre":"CENTRO ESCOLAR \"COLONIA SAN FRANCISCO\"","departamento":"SAN MIGUEL","municipio":"","distrito":"SAN MIGUEL","latitud":"13.496611","longitud":"-88.181250"},
+{"codigo":"12873","nombre":"COMPLEJO EDUCATIVO \"CHARLAIX\"","departamento":"SAN MIGUEL","municipio":"","distrito":"CHIRILAGUA","latitud":"13.174139","longitud":"-88.106472"},
+{"codigo":"11039","nombre":"CENTRO ESCOLAR \"COLONIA LAS MORITAS, CANTÓN LAS MORAS\"","departamento":"LA LIBERTAD","municipio":"","distrito":"COLON","latitud":"13.726389","longitud":"-89.353611"},
+{"codigo":"11018","nombre":"CENTRO ESCOLAR \"DE CIUDAD ARCE\"","departamento":"LA LIBERTAD","municipio":"","distrito":"CIUDAD ARCE","latitud":"13.833333","longitud":"-89.445278"},
+{"codigo":"11033","nombre":"CENTRO ESCOLAR \"LICENCIADO HECTOR MAURICIO PALOMO SOL\"","departamento":"LA LIBERTAD","municipio":"","distrito":"COLON","latitud":"13.749722","longitud":"-89.409167"},
+{"codigo":"12129","nombre":"CENTRO ESCOLAR \"SAN LUIS LA HERRADURA\"","departamento":"LA PAZ","municipio":"","distrito":"SAN LUIS LA HERRADURA","latitud":"13.349278","longitud":"-88.953500"},
+{"codigo":"12083","nombre":"INSTITUTO NACIONAL \"JOSÉ SIMEÓN CAÑAS\"","departamento":"LA PAZ","municipio":"","distrito":"ZACATECOLUCA","latitud":"13.517944","longitud":"-88.869028"},
+{"codigo":"10716","nombre":"INSTITUTO NACIONAL \"THOMAS JEFFERSON \"","departamento":"SONSONATE","municipio":"","distrito":"SONSONATE","latitud":"13.729500","longitud":"-89.721778"},
+{"codigo":"11792","nombre":"INSTITUTO NACIONAL \" WALTER THILO DEININGER \"","departamento":"CUSCATLÁN","municipio":"","distrito":"COJUTEPEQUE","latitud":"13.727222","longitud":"-88.949722"},
+{"codigo":"11982","nombre":"COMPLEJO EDUCATIVO \"PROFESOR ALBERTO VARELA\"","departamento":"LA PAZ","municipio":"","distrito":"SAN JUAN TALPA","latitud":"13.505278","longitud":"-89.093333"},
+{"codigo":"12979","nombre":"INSTITUTO NACIONAL ISIDRO MENÉNDEZ","departamento":"SAN MIGUEL","municipio":"","distrito":"SAN MIGUEL","latitud":"13.471972","longitud":"-88.180417"},
+{"codigo":"10994","nombre":"CENTRO ESCOLAR \"PONCIANA RAMIREZ\"","departamento":"CHALATENANGO","municipio":"","distrito":"TEJUTLA","latitud":"14.173056","longitud":"-89.105000"},
+{"codigo":"10408","nombre":"COMPLEJO EDUCATIVO \"PROFESOR JOSÉ ARNOLDO SERMEÑO\"","departamento":"SANTA ANA","municipio":"","distrito":"SANTA ANA","latitud":"13.999944","longitud":"-89.543722"},
+{"codigo":"11824","nombre":"COMPLEJO EDUCATIVO “JOSÉ MARIA LEMUS P.\"","departamento":"CUSCATLÁN","municipio":"","distrito":"MONTE SAN JUAN","latitud":"13.755694","longitud":"-88.949944"},
+{"codigo":"11827","nombre":"COMPLEJO EDUCATIVO \" DOCTOR PIO ROMERO BOSQUE\"","departamento":"CUSCATLÁN","municipio":"","distrito":"ORATORIO DE CONCEPCION","latitud":"13.816111","longitud":"-89.056944"},
+{"codigo":"11809","nombre":"CENTRO ESCOLAR \"EULOGIA RIVAS\"","departamento":"CUSCATLÁN","municipio":"","distrito":"COJUTEPEQUE","latitud":"13.721389","longitud":"-88.935556"},
+{"codigo":"12024","nombre":"CENTRO ESCOLAR “TIMOTEO LIEVANO”","departamento":"LA PAZ","municipio":"","distrito":"SAN PEDRO NONUALCO","latitud":"13.601472","longitud":"-88.926611"},
+{"codigo":"10221","nombre":"COMPLEJO EDUCATIVO \" ANSELMA SÁNCHEZ DE MANCÍA \"","departamento":"SANTA ANA","municipio":"","distrito":"EL CONGO","latitud":"13.909750","longitud":"-89.493306"},
+{"codigo":"10428","nombre":"COMPLEJO EDUCATIVO \"HACIENDA SAN CAYETANO\"","departamento":"SANTA ANA","municipio":"","distrito":"SANTA ANA","latitud":"14.025028","longitud":"-89.524361"},
+{"codigo":"13241","nombre":"CENTRO ESCOLAR \"BENITO JUAREZ\"","departamento":"MORAZÁN","municipio":"","distrito":"OSICALA","latitud":"13.800194","longitud":"-88.154722"},
+{"codigo":"13205","nombre":"COMPLEJO EDUCATIVO \"FLORINDA DE JUAREZ ALEMAN\"","departamento":"MORAZÁN","municipio":"","distrito":"JOCOAITIQUE","latitud":"13.906944","longitud":"-88.157778"},
+{"codigo":"12186","nombre":"CENTRO ESCOLAR \"BERNARDO PERDOMO\"","departamento":"CABAÑAS","municipio":"","distrito":"ILOBASCO","latitud":"13.839000","longitud":"-88.847833"},
+{"codigo":"12278","nombre":"CENTRO ESCOLAR \"DOCTOR IRENEO CHACÓN\"","departamento":"CABAÑAS","municipio":"","distrito":"TEJUTEPEQUE","latitud":"13.851000","longitud":"-88.907667"},
+{"codigo":"11785","nombre":"COMPLEJO EDUCATIVO \"MARCOS GOMEZ NUÑEZ\"","departamento":"CUSCATLÁN","municipio":"","distrito":"CANDELARIA","latitud":"13.688333","longitud":"-88.978611"},
+{"codigo":"11873","nombre":"CENTRO ESCOLAR SAN RAFAEL CEDROS","departamento":"CUSCATLÁN","municipio":"","distrito":"SAN RAFAEL CEDROS","latitud":"13.730639","longitud":"-88.887083"},
+{"codigo":"11907","nombre":"CENTRO ESCOLAR “ISACC RUIZ ARAUJO”","departamento":"CUSCATLÁN","municipio":"","distrito":"SUCHITOTO","latitud":"13.938056","longitud":"-89.028056"},
+{"codigo":"72071","nombre":"COMPLEJO EDUCATIVO \"DOCTOR GUILLERMO MANUEL UNGO\"","departamento":"CUSCATLÁN","municipio":"","distrito":"SUCHITOTO","latitud":"13.876833","longitud":"-89.067722"},
+{"codigo":"11926","nombre":"CENTRO ESCOLAR \"FABIO IGNACIO MAGAÑA\"","departamento":"LA PAZ","municipio":"","distrito":"EL ROSARIO","latitud":"13.496111","longitud":"-89.030278"},
+{"codigo":"11178","nombre":"CENTRO ESCOLAR \" CANTÓN ATEOS \"","departamento":"LA LIBERTAD","municipio":"","distrito":"SACACOYO","latitud":"13.740892","longitud":"-89.427149"},
+{"codigo":"68123","nombre":"CENTRO ESCOLAR CANTÓN SITIO GRANDE *","departamento":"LA LIBERTAD","municipio":"","distrito":"SAN JUAN OPICO","latitud":"13.783611","longitud":"-89.330556"},
+{"codigo":"68057","nombre":"CENTRO ESCOLAR CASERÍO DOS DE MAYO, CANTÓN LA LABOR *","departamento":"LA LIBERTAD","municipio":"","distrito":"JAYAQUE","latitud":"13.715556","longitud":"-89.415000"},
+{"codigo":"11209","nombre":"CENTRO ESCOLAR HACIENDA VERACRUZ, CANTÓN BUENA VISTA","departamento":"LA LIBERTAD","municipio":"","distrito":"SAN JUAN OPICO","latitud":"13.942500","longitud":"-89.372222"},
+{"codigo":"86408","nombre":"CENTRO ESCOLAR CANTÓN NOMBRE DE DIOS","departamento":"LA LIBERTAD","municipio":"","distrito":"SAN JUAN OPICO","latitud":"13.915000","longitud":"-89.420556"},
+{"codigo":"68129","nombre":"CENTRO ESCOLAR CANTÓN SANTA TERESA","departamento":"LA LIBERTAD","municipio":"","distrito":"SAN MATIAS","latitud":"13.878333","longitud":"-89.306111"},
+{"codigo":"10463","nombre":"CENTRO ESCOLAR TEODORO MORENO","departamento":"SANTA ANA","municipio":"","distrito":"SANTA ANA","latitud":"13.959750","longitud":"-89.544028"},
+{"codigo":"11276","nombre":"COMPLEJO EDUCATIVO TALNIQUE","departamento":"LA LIBERTAD","municipio":"","distrito":"TALNIQUE","latitud":"13.671111","longitud":"-89.410278"},
+{"codigo":"12907","nombre":"CENTRO ESCOLAR JOSÉ EVARISTO MEJÍA","departamento":"SAN MIGUEL","municipio":"","distrito":"LOLOTIQUE","latitud":"13.568750","longitud":"-88.343833"},
+{"codigo":"12856","nombre":"COMPLEJO EDUCATIVO JOSÉ A. MORA","departamento":"SAN MIGUEL","municipio":"","distrito":"CHINAMECA","latitud":"13.531194","longitud":"-88.311528"},
+{"codigo":"12991","nombre":"CENTRO ESCOLAR CIUDAD JARDÍN Nº 3","departamento":"SAN MIGUEL","municipio":"","distrito":"SAN MIGUEL","latitud":"13.474944","longitud":"-88.194611"},
+{"codigo":"10452","nombre":"CENTRO ESCOLAR VALLE EL CARMEN CANTÓN NATIVIDAD","departamento":"SANTA ANA","municipio":"","distrito":"SANTA ANA","latitud":"14.006750","longitud":"-89.493472"},
+{"codigo":"10543","nombre":"CENTRO ESCOLAR MAGDALENO BARCENAS FLORES","departamento":"SANTA ANA","municipio":"","distrito":"TEXISTEPEQUE","latitud":"14.145444","longitud":"-89.561472"},
+{"codigo":"10797","nombre":"CENTRO ESCOLAR \"HÉROES DEL 11 DE ENERO\"","departamento":"CHALATENANGO","municipio":"","distrito":"CHALATENANGO","latitud":"14.043361","longitud":"-88.937528"},
+{"codigo":"10865","nombre":"CENTRO ESCOLAR \"22 DE JUNIO\"","departamento":"CHALATENANGO","municipio":"","distrito":"LA PALMA","latitud":"14.315250","longitud":"-89.170139"},
+{"codigo":"12857","nombre":"CENTRO ESCOLAR \"JULIÁN APARICIO\"","departamento":"SAN MIGUEL","municipio":"","distrito":"CHINAMECA","latitud":"13.510306","longitud":"-88.345528"},
+{"codigo":"12269","nombre":"CENTRO ESCOLAR \"FERMÍN VELASCO\"","departamento":"CABAÑAS","municipio":"","distrito":"SENSUNTEPEQUE","latitud":"13.876450","longitud":"-88.622867"},
+{"codigo":"10444","nombre":"CENTRO ESCOLAR CANTÓN LOS APOYOS","departamento":"SANTA ANA","municipio":"","distrito":"SANTA ANA","latitud":"14.028306","longitud":"-89.442139"},
+{"codigo":"10447","nombre":"CENTRO ESCOLAR CASERÍO EL AMATILLO","departamento":"SANTA ANA","municipio":"","distrito":"SANTA ANA","latitud":"14.051194","longitud":"-89.468806"},
+{"codigo":"62096","nombre":"CENTRO ESCOLAR CASERÍO LAS MARIAS, CANTÓN LOS APOYOS","departamento":"SANTA ANA","municipio":"","distrito":"SANTA ANA","latitud":"14.051139","longitud":"-89.435306"},
+{"codigo":"10527","nombre":"CENTRO ESCOLAR CASERÍO TEXIS JUNCTION, CANTÓN CHILCUYO","departamento":"SANTA ANA","municipio":"","distrito":"TEXISTEPEQUE","latitud":"14.105750","longitud":"-89.507833"},
+{"codigo":"68118","nombre":"CENTRO ESCOLAR CANTÓN SAN JOSE LA CUEVA","departamento":"LA LIBERTAD","municipio":"","distrito":"SAN JUAN OPICO","latitud":"13.946125","longitud":"-89.393293"},
+{"codigo":"64042","nombre":"CENTRO ESCOLAR CANTÓN TAPALCHUCUT NORTE","departamento":"SONSONATE","municipio":"","distrito":"IZALCO","latitud":"13.766167","longitud":"-89.683694"},
+{"codigo":"12178","nombre":"CENTRO ESCOLAR CANTÓN LA QUESERA","departamento":"CABAÑAS","municipio":"","distrito":"ILOBASCO","latitud":"13.824583","longitud":"-88.807500"},
+{"codigo":"12180","nombre":"COMPLEJO EDUCATIVO CASERÍO RANCHO QUEMADO, CANTÓN MAQUILISHUAT","departamento":"CABAÑAS","municipio":"","distrito":"ILOBASCO","latitud":"13.813417","longitud":"-88.794633"},
+{"codigo":"64113","nombre":"CENTRO ESCOLAR CASERIO COLONIA ARTURO ARMANDO MOLINA, CANTON EL EDEN","departamento":"SONSONATE","municipio":"","distrito":"ACAJUTLA","latitud":"13.624056","longitud":"-89.740722"},
+{"codigo":"68030","nombre":"CENTRO ESCOLAR CANTON SAN ANTONIO","departamento":"LA LIBERTAD","municipio":"","distrito":"COMASAGUA","latitud":"13.642500","longitud":"-89.409167"},
+{"codigo":"13218","nombre":"CENTRO ESCOLAR \"GENERAL FRANCISCO MORAZÁN\"","departamento":"MORAZÁN","municipio":"","distrito":"JOCORO","latitud":"13.610056","longitud":"-88.024167"},
+{"codigo":"10462","nombre":"CENTRO ESCOLAR CANTÓN TABLÓN MATAZANO","departamento":"SANTA ANA","municipio":"","distrito":"SANTA ANA","latitud":"13.941083","longitud":"-89.619111"},
+{"codigo":"13502","nombre":"CENTRO ESCOLAR CASERÍO LA CEIBA CANTÓN PUEBLO","departamento":"LA UNIÓN","municipio":"","distrito":"POLOROS","latitud":"13.836750","longitud":"-87.825083"},
+{"codigo":"11048","nombre":"CENTRO ESCOLAR CASERÍO SANTA ADELAIDA","departamento":"LA LIBERTAD","municipio":"","distrito":"COMASAGUA","latitud":"13.661944","longitud":"-89.371667"},
+{"codigo":"10429","nombre":"CE TRANSITO CIENFUEGOS","departamento":"SANTA ANA","municipio":"","distrito":"SANTA ANA","latitud":"13.967000","longitud":"-89.531972"},
+{"codigo":"10198","nombre":"CE SOLEDAD MORENO DE BENAVIDES","departamento":"SANTA ANA","municipio":"","distrito":"CANDELARIA DE LA FRONTERA","latitud":"14.112389","longitud":"-89.649722"},
+{"codigo":"10268","nombre":"CE FRANCISCO IGNACIO CORDERO","departamento":"SANTA ANA","municipio":"","distrito":"CHALCHUAPA","latitud":"13.983667","longitud":"-89.675333"},
+{"codigo":"10455","nombre":"CE CANTON EL PINALON","departamento":"SANTA ANA","municipio":"","distrito":"SANTA ANA","latitud":"14.101250","longitud":"-89.559972"},
+{"codigo":"86287","nombre":"COMP EDUC LOTIFICACION EL ROSARIO CANTON LOS AMATES","departamento":"SANTA ANA","municipio":"","distrito":"SAN SEBASTIAN SALITRILLO","latitud":"13.997750","longitud":"-89.646250"},
+{"codigo":"13242","nombre":"CE UNION PANAMERICAN","departamento":"MORAZÁN","municipio":"","distrito":"PERQUIN","latitud":"13.681944","longitud":"-89.183611"},
+{"codigo":"13249","nombre":"CE LIC JUAN JOSE GUZMAN","departamento":"MORAZÁN","municipio":"","distrito":"SAN CARLOS","latitud":"13.647778","longitud":"-88.092917"},
+{"codigo":"13443","nombre":"COMP EDUC JOSE PANTOJA HIJO","departamento":"LA UNIÓN","municipio":"","distrito":"LA UNION, URBANA","latitud":"13.338972","longitud":"-87.843944"},
+{"codigo":"13446","nombre":"CENTRO ESCOLAR BARRIO LA FATIMA","departamento":"LA UNIÓN","municipio":"","distrito":"LA UNION, URBANA","latitud":"13.332917","longitud":"-87.843000"},
+{"codigo":"10820","nombre":"CE REPUBLICA DE HONDURAS","departamento":"CHALATENANGO","municipio":"","distrito":"CHALATENANGO","latitud":"13.340556","longitud":"-87.854278"},
+{"codigo":"10756","nombre":"CE MIGUEL CABRERA","departamento":"CHALATENANGO","municipio":"","distrito":"AGUA CALIENTE","latitud":"14.180278","longitud":"-89.233056"},
+{"codigo":"10915","nombre":"CE BARRIO EL CENTRO","departamento":"CHALATENANGO","municipio":"","distrito":"NUEVA CONCEPCION","latitud":"14.123333","longitud":"-89.293889"},
+{"codigo":"10949","nombre":"CE JOSE MARTI","departamento":"CHALATENANGO","municipio":"","distrito":"SAN IGNACIO","latitud":"14.339972","longitud":"-89.180444"},
+{"codigo":"82062","nombre":"CE CASERIO LAS LAJAS","departamento":"SAN MIGUEL","municipio":"","distrito":"LOLOTIQUE","latitud":"13.815889","longitud":"-89.577833"},
+{"codigo":"12975","nombre":"CE SAN LUIS DE LA REINA","departamento":"SAN MIGUEL","municipio":"","distrito":"SAN LUIS DE LA REINA","latitud":"13.814972","longitud":"-88.344306"},
+{"codigo":"13122","nombre":"CENTRO ESCOLAR DOCTOR MANUEL QUIJANO HERNANDEZ","departamento":"SAN MIGUEL","municipio":"","distrito":"SESORI","latitud":"13.717500","longitud":"-88.361167"},
+{"codigo":"12294","nombre":"CENTRO ESCOLAR ALBERTO MENJIVAR RODRIGUEZ","departamento":"CABAÑAS","municipio":"","distrito":"VICTORIA, URBANA","latitud":"13.945967","longitud":"-88.632542"},
+{"codigo":"11095","nombre":"CENTRO ESCOLAR CANTON EL CIMARRON","departamento":"LA LIBERTAD","municipio":"","distrito":"LA LIBERTAD","latitud":"13.530556","longitud":"-89.297778"},
+{"codigo":"11284","nombre":"CENTRO ESCOLAR DE TEOTEPEQUE","departamento":"LA LIBERTAD","municipio":"","distrito":"TEOTEPEQUE","latitud":"13.590556","longitud":"-89.518611"},
+{"codigo":"10084","nombre":"CENTRO ESCOLAR URBANIZACION MONTELIMAR","departamento":"LA PAZ","municipio":"","distrito":"OLOCUILTA","latitud":"13.598056","longitud":"-89.122778"},
+{"codigo":"12132","nombre":"COMPLEJO EDUCATIVO PROFESOR REYNALDO PADILLA","departamento":"LA PAZ","municipio":"","distrito":"SAN LUIS LA HERRADURA","latitud":"13.305944","longitud":"-88.916556"},
+{"codigo":"11816","nombre":"COMPLEJO EDUCATIVO ANGELINA ANGEL PANAMEÑO","departamento":"CUSCATLÁN","municipio":"","distrito":"EL CARMEN","latitud":"13.751111","longitud":"-88.913056"},
+{"codigo":"12116","nombre":"CENTRO ESCOLAR SAN AGUSTIN","departamento":"LA PAZ","municipio":"","distrito":"ZACATECOLUCA","latitud":"13.504351","longitud":"-88.869230"},
+{"codigo":"12157","nombre":"CENTRO ESCOLAR PROFESOR JUAN ROBERTO JUAREZ","departamento":"CABAÑAS","municipio":"","distrito":"ILOBASCO","latitud":"13.843333","longitud":"-88.856167"},
+{"codigo":"12115","nombre":"CENTRO ESCOLAR CANTON TIERRA BLANCA","departamento":"LA PAZ","municipio":"","distrito":"ZACATECOLUCA","latitud":"13.455083","longitud":"-88.884028"},
+{"codigo":"68098","nombre":"CENTRO ESCOLAR CASERÍO TACACHICO, CANTÓN TACACHICO","departamento":"LA LIBERTAD","municipio":"","distrito":"QUEZALTEPEQUE","latitud":"13.911667","longitud":"-89.261944"},
+{"codigo":"10621","nombre":"CENTRO ESCOLAR CANTÓN CEIBA DEL CHARCO","departamento":"SONSONATE","municipio":"","distrito":"IZALCO","latitud":"13.743389","longitud":"-89.637750"},
+{"codigo":"64125","nombre":"CENTRO ESCOLAR CASERÍO COLONIA LA COLINA, CANTÓN EL ROSARIO","departamento":"SONSONATE","municipio":"","distrito":"ARMENIA","latitud":"13.752750","longitud":"-89.499250"},
+{"codigo":"13459","nombre":"COMPLEJO EDUCATIVO CATALINO AMAYA","departamento":"LA UNIÓN","municipio":"","distrito":"NUEVA ESPARTA","latitud":"13.876167","longitud":"-87.839528"},
+{"codigo":"82078","nombre":"COMPLEJO EDUCATIVO CANTÓN EL JOBO","departamento":"SAN MIGUEL","municipio":"","distrito":"MONCAGUA","latitud":"13.515083","longitud":"-88.299611"},
+{"codigo":"10559","nombre":"CENTRO ESCOLAR CANTÓN EL SUNZA","departamento":"SONSONATE","municipio":"","distrito":"ACAJUTLA","latitud":"13.636583","longitud":"-89.845306"},
+{"codigo":"10544","nombre":"CENTRO ESCOLAR BERND GRABS","departamento":"SONSONATE","municipio":"","distrito":"ACAJUTLA","latitud":"13.591083","longitud":"-89.826667"},
+{"codigo":"13008","nombre":"CENTRO ESCOLAR CASERÍO CHAPARRASTIQUE, CANTÓN EL NIÑO","departamento":"SAN MIGUEL","municipio":"","distrito":"SAN MIGUEL","latitud":"13.427333","longitud":"-88.227583"},
+{"codigo":"13332","nombre":"CENTRO ESCOLAR CANTÓN TULIMA","departamento":"LA UNIÓN","municipio":"","distrito":"ANAMOROS","latitud":"13.696000","longitud":"-87.868000"}
+];
+var CENTROS_FOSEP = [
+{"codigo":"10429","nombre":"CE TRANSITO CIENFUEGOS","departamento":"SANTA ANA","municipio":"SANTA ANA CENTRO","distrito":"SANTA ANA","latitud":"13.967000","longitud":"-89.531972"},
+{"codigo":"10198","nombre":"CE SOLEDAD MORENO DE BENAVIDES","departamento":"SANTA ANA","municipio":"SANTA ANA OESTE","distrito":"CANDELARIA DE LA FRONTERA","latitud":"14.112389","longitud":"-89.649722"},
+{"codigo":"10268","nombre":"CE FRANCISCO IGNACIO CORDERO","departamento":"SANTA ANA","municipio":"SANTA ANA OESTE","distrito":"CHALCHUAPA","latitud":"13.983667","longitud":"-89.675333"},
+{"codigo":"10455","nombre":"CE CANTON EL PINALON","departamento":"SANTA ANA","municipio":"SANTA ANA CENTRO","distrito":"SANTA ANA","latitud":"14.101250","longitud":"-89.559972"},
+{"codigo":"10820","nombre":"CE REPUBLICA DE HONDURAS","departamento":"CHALATENANGO","municipio":"CHALATENANGO SUR","distrito":"CHALATENANGO","latitud":"14.044065","longitud":"-88.936727"},
+{"codigo":"10756","nombre":"CE MIGUEL CABRERA","departamento":"CHALATENANGO","municipio":"CHALATENANGO CENTRO","distrito":"AGUA CALIENTE","latitud":"14.180278","longitud":"-89.233056"},
+{"codigo":"10915","nombre":"CE BARRIO EL CENTRO","departamento":"CHALATENANGO","municipio":"CHALATENANGO CENTRO","distrito":"NUEVA CONCEPCION","latitud":"14.123333","longitud":"-89.293889"},
+{"codigo":"10949","nombre":"CE JOSE MARTI","departamento":"CHALATENANGO","municipio":"CHALATENANGO NORTE","distrito":"SAN IGNACIO","latitud":"14.339972","longitud":"-89.180444"},
+{"codigo":"11095","nombre":"CE CANTON EL CIMARRON","departamento":"LA LIBERTAD","municipio":"LA LIBERTAD COSTA","distrito":"LA LIBERTAD","latitud":"13.530556","longitud":"-89.297778"},
+{"codigo":"11284","nombre":"CE DE TEOTEPEQUE","departamento":"LA LIBERTAD","municipio":"LA LIBERTAD COSTA","distrito":"TEOTEPEQUE","latitud":"13.590556","longitud":"-89.518611"},
+{"codigo":"10084","nombre":"CE URBANIZACION MONTELIMAR","departamento":"LA PAZ","municipio":"LA PAZ OESTE","distrito":"OLOCUILTA","latitud":"13.598056","longitud":"-89.122778"},
+{"codigo":"12115","nombre":"CE CANTON TIERRA BLANCA","departamento":"LA PAZ","municipio":"LA PAZ ESTE","distrito":"ZACATECOLUCA","latitud":"13.455083","longitud":"-88.884028"},
+{"codigo":"12116","nombre":"CE SAN AGUSTIN","departamento":"LA PAZ","municipio":"LA PAZ ESTE","distrito":"ZACATECOLUCA","latitud":"13.504351","longitud":"-88.869230"},
+{"codigo":"12132","nombre":"COMPLEJO EDUCATIVO PROF REYNALDO PADILLA","departamento":"LA PAZ","municipio":"LA PAZ CENTRO","distrito":"SAN LUIS LA HERRADURA","latitud":"13.305944","longitud":"-88.916556"},
+{"codigo":"12157","nombre":"CE PRO JUAN ROBERTO JUAREZ","departamento":"CABAÑAS","municipio":"CABAÑAS OESTE","distrito":"ILOBASCO","latitud":"13.843333","longitud":"-88.856167"},
+{"codigo":"11816","nombre":"COMP EDUC ANGELINA ANGEL PANAMEÑO","departamento":"CUSCATLÁN","municipio":"CUSCATLÁN SUR","distrito":"EL CARMEN","latitud":"13.751111","longitud":"-88.913056"},
+{"codigo":"82062","nombre":"CE CASERIO LAS LAJAS","departamento":"SAN MIGUEL","municipio":"SAN MIGUEL OESTE","distrito":"LOLOTIQUE","latitud":"13.585528","longitud":"-88.350778"},
+{"codigo":"12975","nombre":"CE SAN LUIS DE LA REINA","departamento":"SAN MIGUEL","municipio":"SAN MIGUEL NORTE","distrito":"SAN LUIS DE LA REINA","latitud":"13.814972","longitud":"-88.344306"},
+{"codigo":"13122","nombre":"CE DR. MANUEL QUIJANO HERNANDEZ","departamento":"SAN MIGUEL","municipio":"SAN MIGUEL NORTE","distrito":"SESORI","latitud":"13.717500","longitud":"-88.361167"},
+{"codigo":"13242","nombre":"CE UNION PANAMERICAN","departamento":"MORAZÁN","municipio":"MORAZAN NORTE","distrito":"PERQUIN","latitud":"13.960333","longitud":"-88.161139"},
+{"codigo":"13249","nombre":"CE LIC JUAN JOSE GUZMAN","departamento":"MORAZÁN","municipio":"MORAZAN NORTE","distrito":"SAN CARLOS","latitud":"13.647778","longitud":"-88.092917"},
+{"codigo":"13443","nombre":"COMP EDUC JOSE PANTOJA HIJO","departamento":"LA UNIÓN","municipio":"LA UNION CENTRO","distrito":"LA UNION, URBANA","latitud":"13.338972","longitud":"-87.843944"},
+{"codigo":"13446","nombre":"COMP EDUC BARIO LA FATIMA","departamento":"LA UNIÓN","municipio":"LA UNION CENTRO","distrito":"LA UNION, URBANA","latitud":"13.332917","longitud":"-87.843000"},
+{"codigo":"86287","nombre":"COMP EDUC LOTIFICACION EL ROSARIO CANTON LOS AMATES","departamento":"SANTA ANA","municipio":"SANTA OESTE","distrito":"SAN SEBASTIAN SALITRILLO","latitud":"13.997750","longitud":"-89.646250"},
+{"codigo":"12294","nombre":"CE ALBERTO MENJIVAR RODRIGUEZ","departamento":"CABAÑAS","municipio":"CABAÑAS CENTRO","distrito":"VICTORIA, URBANA","latitud":"13.945967","longitud":"-88.632542"},
+{"codigo":"76008","nombre":"CE CANTON EL MESTIZO.","departamento":"CABAÑAS","municipio":"CABAÑAS OESTE","distrito":"ILOBASCO","latitud":"13.915700","longitud":"-88.836100"},
+{"codigo":"11045","nombre":"CE CANTON EL FARO","departamento":"LA LIBERTAD","municipio":"LIBERTAD SUR","distrito":"COMASAGUA","latitud":"13.600000","longitud":"-89.364444"},
+{"codigo":"13513","nombre":"COM EDUC PROF RAFAEL ANGEL MARTINEZ RIOS","departamento":"LA UNIÓN","municipio":"UNION NORTE","distrito":"POLOROS","latitud":"13.740111","longitud":"-87.779111"},
+{"codigo":"11059","nombre":"CE CANTON EL ZONTE","departamento":"LA LIBERTAD","municipio":"LIBERTAD COSTA","distrito":"CHILTIUPAN","latitud":"13.497222","longitud":"-89.443056"},
+{"codigo":"10221","nombre":"COMPLEJO EDUCATIVO \" ANSELMA SÁNCHEZ DE MANCÍA \"","departamento":"SANTA ANA","municipio":"SANTA ANA ESTE","distrito":"EL CONGO","latitud":"13.909750","longitud":"-89.493306"},
+{"codigo":"10428","nombre":"COMPLEJO EDUCATIVO \"HACIENDA SAN CAYETANO\"","departamento":"SANTA ANA","municipio":"SANTA ANA CENTRO","distrito":"SANTA ANA","latitud":"14.025028","longitud":"-89.524361"},
+{"codigo":"12156","nombre":"CENTRO ESCOLAR CASERÍO POTRERILLOS, CANTÓN SAN FRANCISCO IRAHETA","departamento":"CABAÑAS","municipio":"CABAÑAS OESTE","distrito":"ILOBASCO","latitud":"13.788817","longitud":"-88.811667"},
+{"codigo":"12158","nombre":"CENTRO ESCOLAR CANTÓN LAS HUERTAS","departamento":"CABAÑAS","municipio":"CABAÑAS OESTE","distrito":"ILOBASCO","latitud":"13.893817","longitud":"-88.804450"},
+{"codigo":"12232","nombre":"COMPLEJO EDUCATIVO CASERÍO HUISCOYOL, CANTÓN LA TRINIDAD","departamento":"CABAÑAS","municipio":"CABAÑAS ESTE","distrito":"SENSUNTEPEQUE","latitud":"13.952917","longitud":"-88.734200"},
+{"codigo":"86015","nombre":"CENTRO ESCOLAR CASERÍO EL ALTO, CANTÓN HUERTAS VIEJAS","departamento":"LA UNIÓN","municipio":"LA UNIÓN NORTE","distrito":"ANAMORÓS","latitud":"13.776056","longitud":"-87.892972"},
+{"codigo":"84012","nombre":"CENTRO ESCOLAR CANÓON CORRALITO","departamento":"MORAZÁN","municipio":"MORAZÁN NORTE","distrito":"CORINTO","latitud":"13.812083","longitud":"-87.950611"},
+{"codigo":"84014","nombre":"CENTRO ESCOLAR CASERÍO LLANO GRANDE, CANTÓN CORRALITO","departamento":"MORAZÁN","municipio":"MORAZÁN NORTE","distrito":"CORINTO","latitud":"13.826667","longitud":"-87.960833"},
+{"codigo":"84119","nombre":"CENTRO ESCOLAR CASERÍO COPANTE, CANTÓN ESTANCIA","departamento":"MORAZÁN","municipio":"MORAZÁN NORTE","distrito":"CACAOPERA","latitud":"13.786583","longitud":"-88.050944"},
+{"codigo":"13054","nombre":"CENTRO ESCOLAR CASERÍO SANTA LUCIA, CANTÓN LAS LOMITAS","departamento":"SAN MIGUEL","municipio":"SAN MIGUEL CENTRO","distrito":"SAN MIGUEL","latitud":"13.450278","longitud":"-88.222944"}
+];
 
 // ===================================================
 function cambiarTipoMision() {
@@ -2489,6 +2705,20 @@ function cambiarTipoMision() {
             '<div class="form-row one" style="margin-top:18px;">' +
                 '<div class="form-field"><label>Dirección / Lugar de la Reunión</label>' +
                 '<input type="text" id="transLugar" placeholder="Lugar de la reunión"></div>' +
+            '</div>';
+    } else if (tipo === 'fosep') {
+        filaDestino.style.display = '';
+        // Forzar selección de Centro Educativo y cargar centros FOSEP
+        document.getElementById('transDestino').value = 'centro';
+        cont.innerHTML =
+            '<div style="margin-bottom:10px;padding:10px 14px;background:#e8f4fd;border:1px solid #3498db;border-radius:6px;font-size:13px;color:#2980b9;">' +
+                '<i class="fas fa-info-circle"></i> <strong>Modo FOSEP:</strong> Solo se muestran centros educativos del proyecto FOSEP.' +
+            '</div>' +
+            '<div id="listaCentros">' + crearBloqueCentro(0) + '</div>' +
+            '<div style="margin-top:12px;">' +
+                '<button type="button" class="btn-add" onclick="agregarOtroCentro()">' +
+                    '<i class="fas fa-plus"></i> Agregar otro Centro Educativo' +
+                '</button>' +
             '</div>';
     } else if (['seguimiento_admin','seguimiento_operativo','seguimiento_ambiental'].indexOf(tipo) !== -1) {
         filaDestino.style.display = '';
@@ -2568,14 +2798,20 @@ function quitarCentro(id) {
     if (el) el.remove();
 }
 
+function getCentrosActivos() {
+    var tipo = document.getElementById('transTipo') ? document.getElementById('transTipo').value : '';
+    return tipo === 'fosep' ? CENTROS_FOSEP : CENTROS;
+}
+
 function buscarCentroBloque(inp, uid) {
     var q     = inp.value.trim().toLowerCase();
     var lista = document.getElementById('sugCod_' + uid);
     if (!q) { lista.innerHTML = ''; return; }
-    var res = CENTROS.filter(function(c) { return c.codigo.toLowerCase().indexOf(q) === 0; }).slice(0, 8);
+    var base = getCentrosActivos();
+    var res = base.filter(function(c) { return c.codigo.toLowerCase().indexOf(q) === 0; }).slice(0, 8);
     lista.innerHTML = res.map(function(c) {
         return '<div class="autocomplete-item" onmousedown="seleccionarCentroBloque(\'' + c.codigo + '\',\'' + uid + '\')">' +
-            '<strong>' + c.codigo + '</strong> — ' + c.nombre + ' <small>(' + c.depto + ')</small></div>';
+            '<strong>' + c.codigo + '</strong> — ' + c.nombre + ' <small>(' + c.departamento + ')</small></div>';
     }).join('');
 }
 
@@ -2583,29 +2819,37 @@ function buscarCentroNombreBloque(inp, uid) {
     var q     = inp.value.trim().toLowerCase();
     var lista = document.getElementById('sugNom_' + uid);
     if (q.length < 2) { lista.innerHTML = ''; return; }
-    var res = CENTROS.filter(function(c) { return c.nombre.toLowerCase().indexOf(q) !== -1; }).slice(0, 8);
+    var base = getCentrosActivos();
+    var res = base.filter(function(c) { return c.nombre.toLowerCase().indexOf(q) !== -1; }).slice(0, 8);
     lista.innerHTML = res.map(function(c) {
         return '<div class="autocomplete-item" onmousedown="seleccionarCentroBloque(\'' + c.codigo + '\',\'' + uid + '\')">' +
-            '<strong>' + c.codigo + '</strong> — ' + c.nombre + ' <small>(' + c.depto + ')</small></div>';
+            '<strong>' + c.codigo + '</strong> — ' + c.nombre + ' <small>(' + c.departamento + ')</small></div>';
     }).join('');
 }
 
 function seleccionarCentroBloque(codigo, uid) {
+    var base = getCentrosActivos();
     var centro = null;
-    for (var i = 0; i < CENTROS.length; i++) {
-        if (CENTROS[i].codigo === codigo) { centro = CENTROS[i]; break; }
+    for (var i = 0; i < base.length; i++) {
+        if (base[i].codigo === codigo) { centro = base[i]; break; }
+    }
+    // Buscar también en CENTROS si no está en la base activa
+    if (!centro) {
+        for (var j = 0; j < CENTROS.length; j++) {
+            if (CENTROS[j].codigo === codigo) { centro = CENTROS[j]; break; }
+        }
     }
     if (!centro) return;
     setVal('cod_'  + uid, centro.codigo);
     setVal('nom_'  + uid, centro.nombre);
-    setVal('dept_' + uid, centro.depto);
+    setVal('dept_' + uid, centro.departamento || '');
     setVal('dist_' + uid, centro.distrito);
-    setVal('lat_'  + uid, centro.lat || '');
-    setVal('lon_'  + uid, centro.lon || '');
+    setVal('lat_'  + uid, centro.latitud  || '');
+    setVal('lon_'  + uid, centro.longitud || '');
     document.getElementById('sugCod_' + uid).innerHTML = '';
     document.getElementById('sugNom_' + uid).innerHTML = '';
     var btn = document.getElementById('maps_' + uid);
-    if (btn) btn.style.display = (centro.lat && centro.lon) ? 'inline-flex' : 'none';
+    if (btn) btn.style.display = (centro.latitud && centro.longitud) ? 'inline-flex' : 'none';
 }
 
 function abrirMapsBloque(uid) {
@@ -2733,21 +2977,48 @@ function grabarTransporte() {
 }
 
 function renderTrans() {
-    var tb = document.getElementById('tbodyTrans');
+    var tb  = document.getElementById('tbodyTrans');
+    var rol = usuarioActual ? usuarioActual.rol : '';
     if (!transportes.length) { tb.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:#7f8c8d;">No hay solicitudes registradas</td></tr>'; return; }
-    tb.innerHTML = transportes.map(function(t, i) {
-        var tn = normalizarTransporte(t);
-        return '<tr>' +
+    // Filtrar solo las del usuario si no es admin
+    var lista = transportes.slice().reverse();
+    if (rol === 'usuario') {
+        lista = lista.filter(function(t) {
+            var tn = normalizarTransporte(t);
+            return tn.usuario === usuarioActual.nombre || tn.solicitante === usuarioActual.nombre;
+        });
+    }
+    var totalPags = Math.ceil(lista.length / POR_PAGINA);
+    if (paginas.trans > totalPags) paginas.trans = 1;
+    var inicio = (paginas.trans - 1) * POR_PAGINA;
+    var pagina = lista.slice(inicio, inicio + POR_PAGINA);
+    tb.innerHTML = pagina.map(function(t) {
+        var tn      = normalizarTransporte(t);
+        var anulado = tn.estado === 'Anulado';
+        var estadoColor = tn.estado === 'Aprobado' ? 'badge-done' : 'badge-pending';
+        var estadoStyle = '';
+        if (tn.estado === 'Atender Observación')  estadoStyle = 'background:#e67e22;color:white;';
+        else if (tn.estado === 'En Trámite')       estadoStyle = 'background:#8e44ad;color:white;';
+        else if (tn.estado === 'Observación Atendida') estadoStyle = 'background:#2980b9;color:white;';
+        else if (tn.estado === 'Aprobado')         estadoStyle = 'background:#27ae60;color:white;';
+        else if (anulado)                          estadoStyle = 'background:#e74c3c;color:white;';
+        else estadoStyle = 'background:#f39c12;color:white;';
+        var estadoBtn = '<button class="badge" onclick="abrirFichaTransportePorCorrelativo(\'' + (tn.correlativo||'') + '\')" ' +
+            'style="border:none;cursor:pointer;padding:5px 10px;font-size:12px;font-weight:600;border-radius:4px;' + estadoStyle + '">' +
+            (tn.estado||'Pendiente') + '</button>';
+        var trStyle = anulado ? 'style="background:#fdecea;"' : '';
+        return '<tr ' + trStyle + '>' +
             '<td>' + fmtFecha(tn.fechaSolicitud) + '</td>' +
             '<td>' + fmtFecha(tn.fechaMision)    + '</td>' +
             '<td>' + (tn.solicitante || '') + '</td>' +
             '<td>' + (tn.tipoMision  || '') + '</td>' +
             '<td>' + (tn.horaSalida  || '') + '</td>' +
             '<td>' + (tn.horaRetorno || '') + '</td>' +
-            '<td><span class="badge ' + (tn.estado === 'Aprobado' ? 'badge-done' : 'badge-pending') + '">' + (tn.estado || '') + '</span></td>' +
+            '<td>' + estadoBtn + '</td>' +
             '<td>—</td>' +
         '</tr>';
     }).join('');
+    renderPaginacion('paginTrans', lista.length, paginas.trans, 'trans', 'cambiarPaginaTrans');
 }
 
 // ===================================================
@@ -2757,11 +3028,16 @@ function renderGMem() {
     var tb  = document.getElementById('tbodyGMem');
     var rol = usuarioActual ? usuarioActual.rol : '';
 
-    var lista = (rol === 'usuario')
-        ? memorandums.map(function(m, i) { return { m: m, i: i }; }).filter(function(x) { return x.m.usuario === usuarioActual.nombre; })
-        : memorandums.map(function(m, i) { return { m: m, i: i }; });
+    var todos = memorandums.map(function(m, i) { return { m: m, i: i }; });
+    if (rol === 'usuario') todos = todos.filter(function(x) { return x.m.usuario === usuarioActual.nombre; });
+    // Orden inverso
+    todos = todos.reverse();
+    var totalPags = Math.ceil(todos.length / POR_PAGINA);
+    if (paginas.gMem > totalPags) paginas.gMem = 1;
+    var inicio = (paginas.gMem - 1) * POR_PAGINA;
+    var lista = todos.slice(inicio, inicio + POR_PAGINA);
 
-    if (!lista.length) { tb.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:#7f8c8d;">No hay memorándums registrados</td></tr>'; return; }
+    if (!todos.length) { tb.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:#7f8c8d;">No hay memorándums registrados</td></tr>'; return; }
     tb.innerHTML = lista.map(function(x) {
         var m = x.m; var i = x.i;
         var paraCompleto = (m.para || '') + (m.cargoDestino ? '<br><small style="color:#7f8c8d;">' + m.cargoDestino + '</small>' : '');
@@ -2772,13 +3048,11 @@ function renderGMem() {
         var btnEditar = '';
         if (rol === 'programador' || rol === 'administrador') {
             btnEditar = '<button class="btn btn-sm btn-secondary" onclick="abrirEditarMem(' + i + ')" style="margin-right:4px;"><i class="fas fa-edit"></i> Editar</button>';
-            // Botón habilitar edición para usuario
             var keyM = 'mem_' + i;
             if (!edicionHabilitada[keyM]) {
                 btnEditar += '<button class="btn btn-sm" style="background:#8e44ad;color:white;margin-right:4px;" onclick="habilitarEdicion(\'mem\',' + i + ')" title="Habilitar edición al usuario"><i class="fas fa-unlock"></i></button>';
             }
         } else {
-            // Usuario: verificar tiempo
             if (puedeEditar('mem', i, m.fechaRegistro)) {
                 btnEditar = '<button class="btn btn-sm btn-secondary" onclick="abrirEditarMem(' + i + ')" style="margin-right:4px;"><i class="fas fa-edit"></i> Editar</button>';
             } else {
@@ -2797,6 +3071,53 @@ function renderGMem() {
             '</td>' +
         '</tr>';
     }).join('');
+    renderPaginacion('paginGMem', todos.length, paginas.gMem, 'gMem', 'cambiarPaginaGMem');
+}
+
+function renderGMemFosep() {
+    var tb  = document.getElementById('tbodyGMemFosep');
+    var rol = usuarioActual ? usuarioActual.rol : '';
+
+    var todos = memorandumsFosep.map(function(m, i) { return { m: m, i: i }; });
+    if (rol === 'usuario') todos = todos.filter(function(x) { return x.m.usuario === usuarioActual.nombre; });
+    todos = todos.reverse();
+    var totalPags = Math.ceil(todos.length / POR_PAGINA);
+    if (paginas.gMemFosep > totalPags) paginas.gMemFosep = 1;
+    var inicio = (paginas.gMemFosep - 1) * POR_PAGINA;
+    var lista = todos.slice(inicio, inicio + POR_PAGINA);
+
+    if (!todos.length) { tb.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:#7f8c8d;">No hay memorándums FOSEP registrados</td></tr>'; return; }
+    tb.innerHTML = lista.map(function(x) {
+        var m = x.m; var i = x.i;
+        var paraCompleto = (m.para || '') + (m.cargoDestino ? '<br><small style="color:#7f8c8d;">' + m.cargoDestino + '</small>' : '');
+        var btnEliminar  = (rol === 'programador' || rol === 'administrador')
+            ? '<button class="btn btn-sm btn-danger" onclick="eliminarMemFosepGestion(' + i + ')" style="margin-right:4px;"><i class="fas fa-trash"></i></button>'
+            : '';
+        var btnEditar = (rol === 'programador' || rol === 'administrador' || m.usuario === usuarioActual.nombre)
+            ? '<button class="btn btn-sm btn-secondary" onclick="abrirEditarMemFosep(' + i + ')" style="margin-right:4px;"><i class="fas fa-edit"></i> Editar</button>'
+            : '';
+        return '<tr>' +
+            '<td>' + (m.referencia || '') + '</td>' +
+            '<td>' + fmtFecha(m.fecha) + '</td>' +
+            '<td>' + paraCompleto + '</td>' +
+            '<td>' + (m.de || '') + '</td>' +
+            '<td>' + (m.asunto || '').substring(0, 40) + '...</td>' +
+            '<td style="white-space:nowrap;">' + btnEliminar + btnEditar +
+                '<button class="btn btn-sm" style="background:var(--primary);color:white;" onclick="imprimirMemFosep(' + i + ')"><i class="fas fa-print"></i> Imprimir</button>' +
+            '</td>' +
+        '</tr>';
+    }).join('');
+    renderPaginacion('paginGMemFosep', todos.length, paginas.gMemFosep, 'gMemFosep', 'cambiarPaginaGMemFosep');
+}
+
+function eliminarMemFosepGestion(idx) {
+    if (!confirm('¿Eliminar este memorándum FOSEP?')) return;
+    apiCall('deleteMemorandumFOSEP', { index: idx }).then(function() {
+        memorandumsFosep.splice(idx, 1);
+        contMemFosep--;
+        renderGMemFosep();
+        alerta('Memorándum FOSEP eliminado', 'success');
+    }).catch(function(err) { alerta('Error: ' + err.message, 'error'); });
 }
 
 function fechaParaInput(f) {
@@ -2891,15 +3212,20 @@ function renderGTrans() {
 
     var cols = rol !== 'usuario' ? '11' : '10';
 
-    // Filtrar según rol
-    var lista = (rol === 'usuario')
+    // Filtrar según rol y orden inverso
+    var todos = (rol === 'usuario')
         ? transportes.map(function(t, i) { return { t: t, i: i }; }).filter(function(x) {
             var tn = normalizarTransporte(x.t);
             return tn.usuario === usuarioActual.nombre || tn.solicitante === usuarioActual.nombre;
           })
         : transportes.map(function(t, i) { return { t: t, i: i }; });
+    todos = todos.reverse();
+    var totalPags = Math.ceil(todos.length / POR_PAGINA);
+    if (paginas.gTrans > totalPags) paginas.gTrans = 1;
+    var inicio = (paginas.gTrans - 1) * POR_PAGINA;
+    var lista = todos.slice(inicio, inicio + POR_PAGINA);
 
-    if (!lista.length) { tb.innerHTML = '<tr><td colspan="' + cols + '" style="text-align:center;padding:30px;color:#7f8c8d;">No hay solicitudes</td></tr>'; return; }
+    if (!todos.length) { tb.innerHTML = '<tr><td colspan="' + cols + '" style="text-align:center;padding:30px;color:#7f8c8d;">No hay solicitudes</td></tr>'; return; }
     tb.innerHTML = lista.map(function(x) {
         var t = x.t; var i = x.i;
         var tn = normalizarTransporte(t);
@@ -2950,6 +3276,7 @@ function renderGTrans() {
             colAcciones +
         '</tr>';
     }).join('');
+    renderPaginacion('paginGTrans', todos.length, paginas.gTrans, 'gTrans', 'cambiarPaginaGTrans');
 }
 
 // ===== FICHA LECTURA TRANSPORTE =====
@@ -3150,7 +3477,7 @@ function buscarCentroMod(q) {
     var res = document.getElementById('modResultadosCentro');
     if (!q || q.length < 2) { res.style.display = 'none'; return; }
     var filtro = q.toLowerCase();
-    var encontrados = CENTROS.filter(function(c) {
+    var encontrados = getCentrosActivos().filter(function(c) {
         return c.codigo.includes(q) || c.nombre.toLowerCase().includes(filtro);
     }).slice(0, 8);
     if (!encontrados.length) { res.style.display = 'none'; return; }
