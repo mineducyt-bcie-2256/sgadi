@@ -82,6 +82,36 @@
         }
         .help-text { font-size: 12px; color: #7f8c8d; margin-top: 4px; }
 
+        /* ===== AUTOCOMPLETADO DE USUARIO ===== */
+        .autocomplete-wrap { position: relative; }
+        .autocomplete-wrap input { padding-right: 38px !important; }
+        #acLimpiar {
+            position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+            background: none; border: none; cursor: pointer; color: #95a5a6;
+            font-size: 15px; padding: 4px 6px; line-height: 1; display: none;
+        }
+        #acLimpiar:hover { color: var(--primary); }
+        .ac-lista {
+            display: none;
+            position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 60;
+            background: #fff;
+            border: 2px solid var(--accent);
+            border-radius: 6px;
+            max-height: 230px; overflow-y: auto;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.14);
+        }
+        .ac-lista.abierta { display: block; }
+        .ac-item {
+            padding: 10px 14px; cursor: pointer; font-size: 14px;
+            border-bottom: 1px solid #ecf0f1; line-height: 1.35;
+        }
+        .ac-item:last-child { border-bottom: none; }
+        .ac-item:hover, .ac-item.activo { background: var(--accent); color: #fff; }
+        .ac-item:hover .ac-cargo, .ac-item.activo .ac-cargo { color: rgba(255,255,255,0.85); }
+        .ac-item strong { font-weight: 700; }
+        .ac-cargo { display: block; font-size: 12px; color: #7f8c8d; margin-top: 2px; }
+        .ac-vacio { padding: 12px 14px; font-size: 13px; color: #7f8c8d; text-align: center; }
+
         .msg-error   { color: #e74c3c; font-size: 13px; margin-top: 10px; text-align: center; min-height: 18px; }
         .msg-success { color: #27ae60; font-size: 13px; margin-top: 10px; text-align: center; min-height: 18px; }
 
@@ -256,10 +286,16 @@
         <div id="tabIngresar" class="login-view active">
             <div class="form-group">
                 <label><i class="fas fa-user"></i> Usuario</label>
-                <select id="loginUsuario">
-                    <option value="">Seleccionar usuario...</option>
-                    <option value="Martin Quintanilla">Martin Quintanilla (Programador)</option>
-                </select>
+                <div class="autocomplete-wrap">
+                    <input type="text" id="loginUsuario" autocomplete="off" spellcheck="false"
+                           placeholder="Escribe tu nombre..."
+                           oninput="acFiltrar()" onfocus="acFiltrar()" onkeydown="acTeclas(event)">
+                    <button type="button" id="acLimpiar" onclick="acLimpiarCampo()" title="Limpiar">
+                        <i class="fas fa-xmark"></i>
+                    </button>
+                    <div id="acLista" class="ac-lista"></div>
+                </div>
+                <div id="loginEstado"></div>
             </div>
             <div class="form-group">
                 <label><i class="fas fa-lock"></i> Clave (4 dígitos)</label>
@@ -1168,8 +1204,11 @@ let contTrans           = 0;
 // ===================================================
 // API
 // ===================================================
-function apiCall(action, data) {
-    data = data || {};
+var ULTIMO_ERROR_API = null;
+
+function apiCall(action, data, intento) {
+    data   = data || {};
+    intento = intento || 1;
     var payload = Object.assign({ action: action }, data);
     var params  = 'data=' + encodeURIComponent(JSON.stringify(payload));
     var url     = API_URL + '?' + params;
@@ -1177,15 +1216,58 @@ function apiCall(action, data) {
     return new Promise(function(resolve, reject) {
         var xhr = new XMLHttpRequest();
         xhr.open('GET', url, true);
-        xhr.timeout = 20000;
+        xhr.timeout = 30000;
+
+        function fallar(err) {
+            ULTIMO_ERROR_API = { action: action, mensaje: err.message, hora: new Date().toLocaleTimeString() };
+            console.error('[API] ' + action + ' →', err.message);
+            // Reintento automático (hasta 3 intentos) con espera progresiva
+            if (intento < 3) {
+                setTimeout(function() {
+                    apiCall(action, data, intento + 1).then(resolve).catch(reject);
+                }, intento * 1200);
+            } else {
+                reject(err);
+            }
+        }
+
         xhr.onload = function() {
-            try { resolve(JSON.parse(xhr.responseText)); }
-            catch(e) { reject(new Error('Respuesta inválida del servidor')); }
+            var txt = (xhr.responseText || '').trim();
+
+            if (xhr.status !== 200) {
+                fallar(new Error('El servidor respondió con código ' + xhr.status));
+                return;
+            }
+            // Apps Script devuelve HTML cuando el script falla o exige iniciar sesión
+            if (txt.charAt(0) === '<') {
+                if (txt.indexOf('accounts.google.com') !== -1 || txt.toLowerCase().indexOf('sign in') !== -1) {
+                    fallar(new Error('La API pide iniciar sesión en Google. Vuelve a publicar el Apps Script con acceso "Cualquier persona".'));
+                } else {
+                    fallar(new Error('El Apps Script devolvió una página de error (no JSON). Revisa el log de ejecuciones.'));
+                }
+                return;
+            }
+            try {
+                resolve(JSON.parse(txt));
+            } catch(e) {
+                fallar(new Error('Respuesta inválida del servidor'));
+            }
         };
-        xhr.onerror   = function() { reject(new Error('Sin conexión con el servidor')); };
-        xhr.ontimeout = function() { reject(new Error('Tiempo de espera agotado')); };
+        xhr.onerror   = function() { fallar(new Error('Sin conexión con el servidor (posible bloqueo CORS o URL de despliegue inválida)')); };
+        xhr.ontimeout = function() { fallar(new Error('Tiempo de espera agotado')); };
         xhr.send();
     });
+}
+
+// Diagnóstico rápido: escribe  diagnosticoAPI()  en la consola del navegador
+function diagnosticoAPI() {
+    console.log('URL de la API:', API_URL);
+    console.log('Probando getUsuarios...');
+    apiCall('getUsuarios')
+        .then(function(r) { console.log('✅ Respuesta:', r); })
+        .catch(function(e) { console.log('❌ Falló:', e.message); });
+    console.log('Prueba manual — abre esta URL en una pestaña nueva:');
+    console.log(API_URL + '?data=' + encodeURIComponent('{"action":"getUsuarios"}'));
 }
 
 // ===================================================
@@ -1203,6 +1285,19 @@ window.onload = function() {
         }
     } catch(e) {
         sessionStorage.removeItem('sesionUsuario');
+    }
+
+    // Cerrar sugerencias de usuario al hacer clic fuera
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.autocomplete-wrap')) acCerrar();
+    });
+
+    // Enter en el campo de clave = Ingresar
+    var inpClave = document.getElementById('loginClave');
+    if (inpClave) {
+        inpClave.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') { e.preventDefault(); doLogin(); }
+        });
     }
 
     // Cerrar modal al hacer clic fuera
@@ -1226,16 +1321,18 @@ window.onload = function() {
     });
 };
 
+// Al abrir la página SOLO se piden los usuarios.
+// Apps Script atiende las peticiones de un mismo script EN FILA, no en paralelo:
+// lanzar 4 a la vez hacía que getUsuarios esperara detrás de las otras y venciera
+// el tiempo de espera. El resto de datos se carga después del ingreso.
 function cargarDatosIniciales() {
-    apiCall('getUsuarios').then(function(res) {
-        if (res.ok) {
-            usuariosRegistrados = res.data;
-            refrescarSelectLogin();
-        }
-    }).catch(function() {});
+    cargarUsuariosLogin();
+}
 
-    apiCall('getMemorandums').then(function(res) {
-        if (res.ok) {
+// Se ejecuta ya dentro del sistema, una petición a la vez (en cadena).
+function cargarDatosSistema() {
+    return apiCall('getMemorandums').then(function(res) {
+        if (res && res.ok) {
             memorandums = res.data.map(function(m) {
                 // Normalizar campo Contenido (Sheet puede enviarlo con mayúscula)
                 if (!m.contenido && m.Contenido) m.contenido = m.Contenido;
@@ -1243,21 +1340,126 @@ function cargarDatosIniciales() {
             });
             contMem = memorandums.length;
         }
-    }).catch(function() {});
+    }).catch(function() {})
 
-    apiCall('getMemorandumsFOSEP').then(function(res) {
-        if (res.ok) {
-            memorandumsFosep = res.data.map(function(m) {
-                if (!m.contenido && m.Contenido) m.contenido = m.Contenido;
-                return m;
-            });
-            contMemFosep = memorandumsFosep.length;
+    .then(function() {
+        return apiCall('getMemorandumsFOSEP').then(function(res) {
+            if (res && res.ok) {
+                memorandumsFosep = res.data.map(function(m) {
+                    if (!m.contenido && m.Contenido) m.contenido = m.Contenido;
+                    return m;
+                });
+                contMemFosep = memorandumsFosep.length;
+            }
+        }).catch(function() {});
+    })
+
+    .then(function() {
+        return apiCall('getTransportes').then(function(res) {
+            if (res && res.ok) { transportes = res.data; contTrans = res.data.length; }
+        }).catch(function() {});
+    })
+
+    .then(function() {
+        // Redibujar las tablas ahora que ya hay datos
+        try {
+            refrescarRef(); refrescarRefFosep(); refrescarRefTrans();
+            var rol = usuarioActual ? usuarioActual.rol : '';
+            if (rol === 'administrador' || rol === 'programador') { renderGMem(); renderGTrans(); }
+            if (typeof renderMemorandums === 'function')  renderMemorandums();
+            if (typeof renderTransportes === 'function')  renderTransportes();
+        } catch(e) { console.warn('Redibujado parcial:', e.message); }
+    });
+}
+
+// ---------------------------------------------------
+// CARGA DE USUARIOS PARA EL LOGIN (con estado visible)
+// ---------------------------------------------------
+function estadoLogin(texto, tipo) {
+    var box = document.getElementById('loginEstado');
+    if (!box) return;
+    if (!texto) { box.innerHTML = ''; return; }
+    var color = tipo === 'error' ? '#c0392b'
+              : (tipo === 'ok' ? '#27ae60'
+              : (tipo === 'aviso' ? '#e67e22' : '#7f8c8d'));
+    var icono = tipo === 'error' ? 'fa-triangle-exclamation'
+              : (tipo === 'ok' ? 'fa-circle-check'
+              : (tipo === 'aviso' ? 'fa-cloud-arrow-down' : 'fa-spinner fa-spin'));
+    var boton = (tipo === 'error' || tipo === 'aviso')
+        ? ' <button onclick="cargarUsuariosLogin()" style="background:none;border:none;color:var(--accent);text-decoration:underline;cursor:pointer;font-size:12px;">Reintentar</button>'
+        : '';
+    box.innerHTML = '<span style="color:' + color + ';font-size:12px;display:block;margin-top:6px;">' +
+                    '<i class="fas ' + icono + '"></i> ' + texto + boton + '</span>';
+}
+
+// ---------------------------------------------------
+// CACHÉ LOCAL DE USUARIOS
+// Guarda la última lista que sí cargó, para que el sistema
+// siga permitiendo el ingreso aunque la API esté caída.
+// ---------------------------------------------------
+var CACHE_KEY = 'sgadi_usuarios_cache';
+
+function guardarCacheUsuarios(lista) {
+    try {
+        localStorage.setItem(CACHE_KEY, JSON.stringify({
+            fecha: new Date().toISOString(),
+            data:  lista
+        }));
+    } catch(e) { console.warn('No se pudo guardar la caché local'); }
+}
+
+function leerCacheUsuarios() {
+    try {
+        var raw = localStorage.getItem(CACHE_KEY);
+        if (!raw) return null;
+        var c = JSON.parse(raw);
+        if (!c || !Array.isArray(c.data) || !c.data.length) return null;
+        return c;
+    } catch(e) { return null; }
+}
+
+function antiguedadCache(iso) {
+    var min = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+    if (min < 60)   return 'hace ' + min + ' min';
+    if (min < 1440) return 'hace ' + Math.round(min / 60) + ' h';
+    return 'hace ' + Math.round(min / 1440) + ' días';
+}
+
+function cargarUsuariosLogin() {
+    var sel = document.getElementById('loginUsuario');
+    if (sel) sel.disabled = true;
+    estadoLogin('Cargando lista de usuarios...', 'info');
+
+    apiCall('getUsuarios').then(function(res) {
+        if (!res || res.ok !== true) {
+            throw new Error((res && res.error) ? res.error : 'La API respondió sin datos válidos');
         }
-    }).catch(function() {});
-
-    apiCall('getTransportes').then(function(res) {
-        if (res.ok) { transportes = res.data; contTrans = res.data.length; }
-    }).catch(function() {});
+        if (!Array.isArray(res.data)) {
+            throw new Error('La API no devolvió una lista de usuarios');
+        }
+        usuariosRegistrados = res.data.filter(function(u) { return u && u.nombre; });
+        guardarCacheUsuarios(usuariosRegistrados);
+        refrescarSelectLogin();
+        if (usuariosRegistrados.length === 0) {
+            estadoLogin('Conectado, pero no hay usuarios registrados en la hoja.', 'info');
+        } else {
+            estadoLogin('');
+        }
+    }).catch(function(err) {
+        // PLAN B: usar la última lista guardada en este equipo
+        var cache = leerCacheUsuarios();
+        if (cache) {
+            usuariosRegistrados = cache.data;
+            refrescarSelectLogin();
+            estadoLogin('Sin conexión con el servidor. Usando la lista guardada en este equipo (' +
+                        antiguedadCache(cache.fecha) + '). Puedes ingresar normalmente.', 'aviso');
+        } else {
+            refrescarSelectLogin(); // deja al menos al programador disponible
+            estadoLogin('No se pudo cargar la lista: ' + err.message, 'error');
+        }
+    }).finally(function() {
+        if (sel) sel.disabled = false;
+    });
 }
 
 // ===================================================
@@ -1274,16 +1476,25 @@ function mostrarTab(id, btn) {
 // LOGIN
 // ===================================================
 function doLogin() {
-    var nombre = document.getElementById('loginUsuario').value;
+    acCerrar();
+    var nombre = document.getElementById('loginUsuario').value.trim();
     var clave  = document.getElementById('loginClave').value;
     var msg    = document.getElementById('loginMsg');
     msg.textContent = '';
 
-    if (!nombre) { msg.textContent = 'Selecciona un usuario'; return; }
-    if (!clave)  { msg.textContent = 'Ingresa tu clave';      return; }
+    if (!nombre) {
+        msg.textContent = 'Escribe tu nombre';
+        document.getElementById('loginUsuario').focus();
+        return;
+    }
+    if (!clave) {
+        msg.textContent = 'Ingresa tu clave';
+        document.getElementById('loginClave').focus();
+        return;
+    }
 
     // Programador
-    if (nombre === PROGRAMADOR.nombre && clave === PROGRAMADOR.clave) {
+    if (acNormalizar(nombre) === acNormalizar(PROGRAMADOR.nombre) && normClave(clave) === normClave(PROGRAMADOR.clave)) {
         usuarioActual = PROGRAMADOR;
         sessionStorage.setItem('sesionUsuario', JSON.stringify(PROGRAMADOR));
         abrirSistema();
@@ -1291,12 +1502,21 @@ function doLogin() {
     }
 
     // Usuarios del Sheet
-    var u = null;
+    // Google Sheets devuelve la clave como NÚMERO (1234) y aquí llega como TEXTO ("1234"),
+    // por eso se normalizan ambos lados antes de comparar.
+    var u = null, existeNombre = false;
     for (var i = 0; i < usuariosRegistrados.length; i++) {
-        if (usuariosRegistrados[i].nombre === nombre && usuariosRegistrados[i].clave === clave) {
-            u = usuariosRegistrados[i];
-            break;
-        }
+        var uReg = usuariosRegistrados[i];
+        if (!uReg || !uReg.nombre) continue;
+        if (acNormalizar(uReg.nombre) !== acNormalizar(nombre)) continue;
+        existeNombre = true;
+        if (normClave(uReg.clave) === normClave(clave)) { u = uReg; break; }
+    }
+
+    // El nombre escrito no corresponde a ningún usuario registrado
+    if (!u && !existeNombre && acNormalizar(nombre) !== acNormalizar(PROGRAMADOR.nombre)) {
+        msg.textContent = 'Ese usuario no está registrado. Revisa cómo escribiste tu nombre.';
+        return;
     }
 
     if (u) {
@@ -1366,15 +1586,168 @@ function doRegistro() {
     });
 }
 
+// Normalizadores: evitan fallos por tipo de dato o espacios de la hoja de cálculo
+function normClave(v) {
+    var s = String(v === null || v === undefined ? '' : v).trim();
+    // Recupera ceros a la izquierda que Sheets elimina (ej. 0123 → 123)
+    while (s.length > 0 && s.length < 4) { s = '0' + s; }
+    return s;
+}
+function normNombre(v) {
+    return String(v === null || v === undefined ? '' : v).trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+// ===================================================
+// AUTOCOMPLETADO DE USUARIO EN EL LOGIN
+// ===================================================
+var acOpciones = [];   // lista completa de candidatos
+var acVisibles = [];   // resultados filtrados que se muestran
+var acIndice   = -1;   // opción resaltada con el teclado
+
+// Quita acentos y mayúsculas para que "MARTIN" encuentre a "Martín"
+function acNormalizar(txt) {
+    return String(txt || '')
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase().trim().replace(/\s+/g, ' ');
+}
+
+// Reconstruye la lista de candidatos. Se sigue llamando "refrescarSelectLogin"
+// para no romper las llamadas que ya existen en el resto del sistema.
 function refrescarSelectLogin() {
-    var sel = document.getElementById('loginUsuario');
-    sel.innerHTML = '<option value="">Seleccionar usuario...</option><option value="Martin Quintanilla">Martin Quintanilla (Programador)</option>';
+    if (!Array.isArray(usuariosRegistrados)) usuariosRegistrados = [];
+
+    acOpciones = [{ nombre: PROGRAMADOR.nombre, cargo: PROGRAMADOR.cargo }];
+
     usuariosRegistrados.forEach(function(u) {
-        var opt = document.createElement('option');
-        opt.value       = u.nombre;
-        opt.textContent = u.nombre + ' (' + u.cargo + ')';
-        sel.appendChild(opt);
+        if (!u || !u.nombre) return;
+        var nom = String(u.nombre).trim();
+        if (acNormalizar(nom) === acNormalizar(PROGRAMADOR.nombre)) return; // evita duplicado
+        acOpciones.push({ nombre: nom, cargo: u.cargo || 'Sin cargo' });
     });
+
+    acOpciones.sort(function(a, b) { return a.nombre.localeCompare(b.nombre, 'es'); });
+
+    var inp = document.getElementById('loginUsuario');
+    if (inp) inp.placeholder = 'Escribe tu nombre... (' + acOpciones.length + ' usuarios)';
+}
+
+function acFiltrar() {
+    var inp = document.getElementById('loginUsuario');
+    if (!inp) return;
+    var q = acNormalizar(inp.value);
+
+    document.getElementById('acLimpiar').style.display = inp.value ? 'block' : 'none';
+
+    if (!q) {
+        acVisibles = acOpciones.slice(0, 8);   // al enfocar sin texto, muestra los primeros
+    } else {
+        // Prioriza los que EMPIEZAN con lo escrito, luego los que lo contienen
+        var empiezan = [], contienen = [];
+        acOpciones.forEach(function(o) {
+            var n = acNormalizar(o.nombre);
+            if (n.indexOf(q) === 0)      empiezan.push(o);
+            else if (n.indexOf(q) !== -1) contienen.push(o);
+        });
+        acVisibles = empiezan.concat(contienen).slice(0, 8);
+    }
+
+    acIndice = -1;
+    acPintar(q);
+}
+
+function acPintar(q) {
+    var caja = document.getElementById('acLista');
+    if (!caja) return;
+
+    if (!acOpciones.length) {
+        caja.innerHTML = '<div class="ac-vacio">Aún no se ha cargado la lista de usuarios</div>';
+        caja.classList.add('abierta');
+        return;
+    }
+    if (!acVisibles.length) {
+        caja.innerHTML = '<div class="ac-vacio">Ningún usuario coincide con esa búsqueda</div>';
+        caja.classList.add('abierta');
+        return;
+    }
+
+    caja.innerHTML = acVisibles.map(function(o, i) {
+        return '<div class="ac-item" data-i="' + i + '" onmousedown="acElegir(' + i + ')">' +
+                   acResaltar(o.nombre, q) +
+                   '<span class="ac-cargo">' + o.cargo + '</span>' +
+               '</div>';
+    }).join('');
+    caja.classList.add('abierta');
+}
+
+// Pone en negrita el trozo que el usuario escribió
+function acResaltar(nombre, q) {
+    if (!q) return nombre;
+    var pos = acNormalizar(nombre).indexOf(q);
+    if (pos === -1) return nombre;
+    return nombre.substring(0, pos) +
+           '<strong>' + nombre.substring(pos, pos + q.length) + '</strong>' +
+           nombre.substring(pos + q.length);
+}
+
+function acElegir(i) {
+    var o = acVisibles[i];
+    if (!o) return;
+    var inp = document.getElementById('loginUsuario');
+    inp.value = o.nombre;
+    acCerrar();
+    document.getElementById('acLimpiar').style.display = 'block';
+    document.getElementById('loginMsg').textContent = '';
+    var clave = document.getElementById('loginClave');
+    if (clave) clave.focus();   // pasa directo a la clave
+}
+
+function acTeclas(e) {
+    var caja   = document.getElementById('acLista');
+    var abierta = caja && caja.classList.contains('abierta');
+
+    if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (!abierta) { acFiltrar(); return; }
+        acIndice = Math.min(acIndice + 1, acVisibles.length - 1);
+        acMarcar();
+    } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        acIndice = Math.max(acIndice - 1, 0);
+        acMarcar();
+    } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (abierta && acIndice >= 0) {
+            acElegir(acIndice);
+        } else if (abierta && acVisibles.length === 1) {
+            acElegir(0);          // una sola coincidencia: la toma directo
+        } else {
+            acCerrar();
+            doLogin();
+        }
+    } else if (e.key === 'Escape') {
+        acCerrar();
+    }
+}
+
+function acMarcar() {
+    var items = document.querySelectorAll('#acLista .ac-item');
+    items.forEach(function(el, i) { el.classList.toggle('activo', i === acIndice); });
+    if (items[acIndice]) items[acIndice].scrollIntoView({ block: 'nearest' });
+}
+
+function acCerrar() {
+    var caja = document.getElementById('acLista');
+    if (caja) caja.classList.remove('abierta');
+    acIndice = -1;
+}
+
+function acLimpiarCampo() {
+    var inp = document.getElementById('loginUsuario');
+    inp.value = '';
+    document.getElementById('acLimpiar').style.display = 'none';
+    document.getElementById('loginMsg').textContent = '';
+    inp.focus();
+    acFiltrar();
 }
 
 // ===================================================
@@ -1424,6 +1797,9 @@ function abrirSistema() {
         renderGMem(); renderGTrans();
     }
     if (rol === 'programador') renderUsuarios();
+
+    // Ahora sí: traer memorándums y transportes, en cadena y sin bloquear la pantalla
+    cargarDatosSistema();
 }
 
 // ===================================================
