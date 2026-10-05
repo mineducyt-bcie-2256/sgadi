@@ -1428,50 +1428,119 @@ function cargarDatosIniciales() {
     cargarUsuariosLogin();
 }
 
-// Se ejecuta ya dentro del sistema, una petición a la vez (en cadena).
+// ---------------------------------------------------
+// CARGA DE DATOS DEL SISTEMA
+// Las tres peticiones salen EN PARALELO y cada una dibuja su propia
+// sección apenas llega. Antes iban en cadena: había que esperar las tres
+// (unos 36 s) para ver el primer dato, y los errores caían en un catch
+// vacío, así que las tablas quedaban en blanco sin explicación.
+// ---------------------------------------------------
+var CACHE_DATOS = 'sgadi_datos_cache';
+
+function guardarCacheDatos() {
+    try {
+        localStorage.setItem(CACHE_DATOS, JSON.stringify({
+            fecha:            new Date().toISOString(),
+            memorandums:      memorandums,
+            memorandumsFosep: memorandumsFosep,
+            transportes:      transportes
+        }));
+    } catch(e) { /* cuota llena: no es crítico */ }
+}
+
+function leerCacheDatos() {
+    try {
+        var c = JSON.parse(localStorage.getItem(CACHE_DATOS) || 'null');
+        if (!c || !Array.isArray(c.memorandums)) return null;
+        return c;
+    } catch(e) { return null; }
+}
+
+// Avisa en las tablas vacías que los datos vienen en camino
+function marcarTablasCargando() {
+    [['tbodyGMem',6], ['tbodyGMemFosep',6], ['tbodyGTrans',11],
+     ['tbodyMem',6], ['tbodyMemFosep',6], ['tbodyTrans',8]].forEach(function(par) {
+        var tb = document.getElementById(par[0]);
+        if (!tb) return;
+        tb.innerHTML = '<tr><td colspan="' + par[1] + '" style="text-align:center;padding:26px;color:#7f8c8d;">' +
+                       '<i class="fas fa-spinner fa-spin"></i> Cargando datos...</td></tr>';
+    });
+}
+
 function cargarDatosSistema() {
-    return apiCall('getMemorandums').then(function(res) {
-        if (res && res.ok) {
-            memorandums = res.data.map(function(m) {
-                // Normalizar campo Contenido (Sheet puede enviarlo con mayúscula)
-                if (!m.contenido && m.Contenido) m.contenido = m.Contenido;
-                return m;
-            });
-            contMem = memorandums.length;
+    // 1. Mostrar al instante lo último que se cargó en este equipo
+    var cache = leerCacheDatos();
+    if (cache) {
+        memorandums      = cache.memorandums      || [];
+        memorandumsFosep = cache.memorandumsFosep || [];
+        transportes      = cache.transportes      || [];
+        contMem      = memorandums.length;
+        contMemFosep = memorandumsFosep.length;
+        contTrans    = transportes.length;
+        redibujar('mem'); redibujar('fosep'); redibujar('trans');
+    } else {
+        marcarTablasCargando();
+    }
+
+    // 2. Actualizar en segundo plano, las tres peticiones a la vez
+    var p1 = apiCall('getMemorandums').then(function(res) {
+        if (!res || !res.ok) throw new Error(res && res.error ? res.error : 'Respuesta sin datos');
+        memorandums = (res.data || []).map(function(m) {
+            if (!m.contenido && m.Contenido) m.contenido = m.Contenido;   // el Sheet a veces usa mayúscula
+            return m;
+        });
+        contMem = memorandums.length;
+        redibujar('mem');
+    }).catch(function(err) { errorCarga('memorándums', err); });
+
+    var p2 = apiCall('getMemorandumsFOSEP').then(function(res) {
+        if (!res || !res.ok) throw new Error(res && res.error ? res.error : 'Respuesta sin datos');
+        memorandumsFosep = (res.data || []).map(function(m) {
+            if (!m.contenido && m.Contenido) m.contenido = m.Contenido;
+            return m;
+        });
+        contMemFosep = memorandumsFosep.length;
+        redibujar('fosep');
+    }).catch(function(err) { errorCarga('memorándums FOSEP', err); });
+
+    var p3 = apiCall('getTransportes').then(function(res) {
+        if (!res || !res.ok) throw new Error(res && res.error ? res.error : 'Respuesta sin datos');
+        transportes = res.data || [];
+        contTrans   = transportes.length;
+        redibujar('trans');
+    }).catch(function(err) { errorCarga('transportes', err); });
+
+    return Promise.all([p1, p2, p3]).then(function() { guardarCacheDatos(); });
+}
+
+function errorCarga(que, err) {
+    console.error('No se pudieron cargar los ' + que + ':', err.message);
+    alerta('No se pudieron cargar los ' + que + ': ' + err.message, 'error');
+}
+
+// Redibuja SOLO la sección cuyos datos acaban de llegar
+function redibujar(cual) {
+    var rol   = usuarioActual ? usuarioActual.rol : '';
+    var admin = (rol === 'administrador' || rol === 'programador');
+    try {
+        if (cual === 'mem') {
+            refrescarRef();
+            if (admin) renderGMem();
+            renderMem();
         }
-    }).catch(function() {})
-
-    .then(function() {
-        return apiCall('getMemorandumsFOSEP').then(function(res) {
-            if (res && res.ok) {
-                memorandumsFosep = res.data.map(function(m) {
-                    if (!m.contenido && m.Contenido) m.contenido = m.Contenido;
-                    return m;
-                });
-                contMemFosep = memorandumsFosep.length;
-            }
-        }).catch(function() {});
-    })
-
-    .then(function() {
-        return apiCall('getTransportes').then(function(res) {
-            if (res && res.ok) { transportes = res.data; contTrans = res.data.length; }
-        }).catch(function() {});
-    })
-
-    .then(function() {
-        // Redibujar las tablas ahora que ya hay datos
-        try {
-            refrescarRef(); refrescarRefFosep(); refrescarRefTrans();
-            var rol = usuarioActual ? usuarioActual.rol : '';
-            if (rol === 'administrador' || rol === 'programador') { renderGMem(); renderGTrans(); }
-            // Si el calendario está abierto, redibujarlo con los transportes recién llegados
+        if (cual === 'fosep') {
+            refrescarRefFosep();
+            renderGMemFosep();
+            renderMemFosep();
+        }
+        if (cual === 'trans') {
+            refrescarRefTrans();
+            if (admin) renderGTrans();
+            renderTrans();
             var cal = document.getElementById('gCal');
             if (cal && cal.classList.contains('active')) renderCalendario();
-            if (typeof renderMemorandums === 'function')  renderMemorandums();
-            if (typeof renderTransportes === 'function')  renderTransportes();
-        } catch(e) { console.warn('Redibujado parcial:', e.message); }
-    });
+        }
+    } catch(e) { console.warn('Redibujado de ' + cual + ':', e.message); }
 }
 
 // ---------------------------------------------------
