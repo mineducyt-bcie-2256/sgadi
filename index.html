@@ -1279,7 +1279,7 @@
 // ===================================================
 // CONFIGURACIÓN
 // ===================================================
-const API_URL = 'https://script.google.com/macros/s/AKfycbzX_QJU5aRipeKVXj7SfMDU_ZBGu0arXQp2RjambCPVjpu474rvJex_nUz3sxnc4U46/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbyCuYuNh_sB3JpO7cFkLtBmfaq9LR6BxvUIC86d4X3cIpFATDenPzgVFg88oyGpyjQe/exec';
 
 const PROGRAMADOR = {
     nombre: 'Martin Quintanilla',
@@ -1557,7 +1557,7 @@ function estadoLogin(texto, tipo) {
               : (tipo === 'ok' ? 'fa-circle-check'
               : (tipo === 'aviso' ? 'fa-cloud-arrow-down' : 'fa-spinner fa-spin'));
     var boton = (tipo === 'error' || tipo === 'aviso')
-        ? ' <button onclick="cargarUsuariosLogin()" style="background:none;border:none;color:var(--accent);text-decoration:underline;cursor:pointer;font-size:12px;">Reintentar</button>'
+        ? ' <button onclick="cargarUsuariosLogin(true)" style="background:none;border:none;color:var(--accent);text-decoration:underline;cursor:pointer;font-size:12px;">Reintentar</button>'
         : '';
     box.innerHTML = '<span style="color:' + color + ';font-size:12px;display:block;margin-top:6px;">' +
                     '<i class="fas ' + icono + '"></i> ' + texto + boton + '</span>';
@@ -1596,40 +1596,52 @@ function antiguedadCache(iso) {
     return 'hace ' + Math.round(min / 1440) + ' días';
 }
 
-function cargarUsuariosLogin() {
-    var sel = document.getElementById('loginUsuario');
-    if (sel) sel.disabled = true;
-    estadoLogin('Cargando lista de usuarios...', 'info');
+function cargarUsuariosLogin(manual) {
+    // El campo NUNCA se deshabilita: antes quedaba bloqueado mientras esperaba
+    // la respuesta del servidor, así que no se podía ni empezar a escribir.
+    var inp = document.getElementById('loginUsuario');
 
+    // 1. Si este equipo ya cargó la lista alguna vez, mostrarla AL INSTANTE.
+    var cache = leerCacheUsuarios();
+    var teniaCache = false;
+    if (cache) {
+        usuariosRegistrados = cache.data;
+        refrescarSelectLogin();
+        teniaCache = true;
+        estadoLogin('');
+    } else if (manual) {
+        estadoLogin('Buscando la lista de usuarios...', 'info');
+    } else {
+        estadoLogin('');
+    }
+
+    // 2. Actualizar en segundo plano, sin estorbar.
     apiCall('getUsuarios').then(function(res) {
-        if (!res || res.ok !== true) {
+        if (!res || res.ok !== true || !Array.isArray(res.data)) {
             throw new Error((res && res.error) ? res.error : 'La API respondió sin datos válidos');
         }
-        if (!Array.isArray(res.data)) {
-            throw new Error('La API no devolvió una lista de usuarios');
-        }
+        var escrito = inp ? inp.value : '';          // no pisar lo que ya tecleó
+
         usuariosRegistrados = res.data.filter(function(u) { return u && u.nombre; });
         guardarCacheUsuarios(usuariosRegistrados);
         refrescarSelectLogin();
+
+        if (inp && escrito) inp.value = escrito;
+
         if (usuariosRegistrados.length === 0) {
             estadoLogin('Conectado, pero no hay usuarios registrados en la hoja.', 'info');
         } else {
             estadoLogin('');
         }
     }).catch(function(err) {
-        // PLAN B: usar la última lista guardada en este equipo
-        var cache = leerCacheUsuarios();
-        if (cache) {
-            usuariosRegistrados = cache.data;
-            refrescarSelectLogin();
-            estadoLogin('Sin conexión con el servidor. Usando la lista guardada en este equipo (' +
-                        antiguedadCache(cache.fecha) + '). Puedes ingresar normalmente.', 'aviso');
+        console.warn('Lista de usuarios no disponible:', err.message);
+        if (teniaCache) {
+            // Hay copia local: el ingreso funciona igual, solo se avisa discretamente
+            estadoLogin('Usando la lista guardada en este equipo (' +
+                        antiguedadCache(cache.fecha) + ').', 'aviso');
         } else {
-            refrescarSelectLogin(); // deja al menos al programador disponible
             estadoLogin('No se pudo cargar la lista: ' + err.message, 'error');
         }
-    }).finally(function() {
-        if (sel) sel.disabled = false;
     });
 }
 
