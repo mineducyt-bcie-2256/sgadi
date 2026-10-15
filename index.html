@@ -81,6 +81,8 @@
             box-shadow: 0 0 0 3px rgba(52,152,219,0.1);
         }
         .help-text { font-size: 12px; color: #7f8c8d; margin-top: 4px; }
+        .btn-doc { background:#1a73e8; color:#fff; }
+        .btn-doc:hover { background:#1557b0; }
 
         /* ===== CALENDARIO DE SALIDAS ===== */
         .cal-toolbar { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:14px; }
@@ -2765,6 +2767,56 @@ function fmtFechaLarga(f) {
     return f;
 }
 
+// ===================================================
+// VER DOCUMENTO EN GOOGLE DOCS
+// El servidor copia la plantilla institucional, la rellena y guarda el
+// archivo en Drive. Un memorándum = un documento: si ya se generó antes,
+// se abre el mismo en vez de crear copias nuevas.
+// ===================================================
+function verDocumentoMem(idx) {
+    var m = memorandums[idx];
+    if (!m) { alerta('No se encontró el memorándum', 'error'); return; }
+
+    // La pestaña se abre AHORA, no al recibir la respuesta: una ventana
+    // abierta fuera del clic directo la bloquea el navegador.
+    var ventana = window.open('', '_blank');
+    if (ventana) {
+        ventana.document.write(
+            '<!doctype html><html lang="es"><head><meta charset="utf-8">' +
+            '<title>Generando documento...</title></head>' +
+            '<body style="font-family:system-ui,sans-serif;text-align:center;padding:60px 20px;color:#34495e;">' +
+            '<h2 style="font-weight:600;">Generando el memorándum...</h2>' +
+            '<p style="color:#7f8c8d;">Referencia ' + (m.referencia || '') + '</p>' +
+            '<p style="color:#95a5a6;font-size:14px;">Puede tardar unos segundos. No cierres esta pestaña.</p>' +
+            '</body></html>');
+    }
+
+    mostrarGuardando('Preparando el documento...');
+
+    apiCall('generarDocMemo', { memo: m }).then(function(res) {
+        ocultarGuardando();
+
+        if (!res || res.ok !== true || !res.data || !res.data.url) {
+            throw new Error((res && res.error) ? res.error : 'El servidor no devolvió el documento');
+        }
+
+        var url = res.data.url;
+        if (ventana) {
+            ventana.location.href = url;
+        } else {
+            window.open(url, '_blank');   // el navegador bloqueó la pestaña previa
+        }
+
+        if (res.data.nuevo) alerta('Documento generado y guardado en Drive', 'success');
+
+    }).catch(function(err) {
+        ocultarGuardando();
+        if (ventana) ventana.close();
+        alerta('No se pudo generar el documento: ' + err.message, 'error');
+        console.error('generarDocMemo:', err);
+    });
+}
+
 function imprimirMem(idx) {
     var m = memorandums[idx];
     var contenidoHtml = (m.contenido || '')
@@ -3626,7 +3678,8 @@ function renderGMem() {
             '<td>' + (m.de || '') + '</td>' +
             '<td>' + (m.asunto || '').substring(0, 40) + '...</td>' +
             '<td style="white-space:nowrap;">' + btnEliminar + btnEditar +
-                '<button class="btn btn-sm" style="background:var(--primary);color:white;" onclick="imprimirMem(' + i + ')"><i class="fas fa-print"></i> Imprimir</button>' +
+                '<button class="btn btn-sm" style="background:var(--primary);color:white;margin-right:4px;" onclick="imprimirMem(' + i + ')"><i class="fas fa-print"></i> Imprimir</button>' +
+                '<button class="btn btn-sm btn-doc" onclick="verDocumentoMem(' + i + ')" title="Abrir el memorándum en Google Docs"><i class="fas fa-file-lines"></i> Ver Documento</button>' +
             '</td>' +
         '</tr>';
     }).join('');
